@@ -2,7 +2,7 @@
 import { useState } from 'react';
 
 // At the top of VisibilityToggle.jsx — match whichever env you're testing in
-const NODE_BACKEND_URL = import.meta.env.VITE_NODE_BACKEND_URL || 'https://wonderfloor-dashboard-frontend.vercel.app';
+const NODE_BACKEND_URL = import.meta.env.VITE_NODE_BACKEND_URL || 'https://wonderfloor-dashboard.vercel.app';
 
 export default function VisibilityToggle({ productId, initialVisible, onToggle }) {
   const [isVisible, setIsVisible] = useState(initialVisible ?? true);
