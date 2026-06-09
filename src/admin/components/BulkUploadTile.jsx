@@ -59,7 +59,7 @@ export default function BulkImageUploadModal({ onClose, onSuccess }) {
     });
 
     try {
-      const response = await fetch('http://localhost:8000/upload/bulk-products-combined', {
+      const response = await fetch('https://wonderfloor-dashboard-frontend.vercel.app/upload/bulk-products-combined', {
         method: 'POST',
         body: formData,
       });
