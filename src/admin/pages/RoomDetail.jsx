@@ -1,7 +1,7 @@
 // RoomDetailModal.jsx
 import { useState, useEffect } from 'react';
 
-const BASE_URL = import.meta.env.VITE_NODE_BACKEND_URL || 'http://localhost:8000';
+const BASE_URL = import.meta.env.VITE_NODE_BACKEND_URL || 'https://wonderfloor-dashboard.vercel.app';
 
 export default function RoomDetailModal({ roomId, onClose }) {
   const [room, setRoom] = useState(null);
