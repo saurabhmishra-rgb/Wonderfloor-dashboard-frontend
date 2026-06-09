@@ -1,5 +1,5 @@
 import { useState, useRef } from 'react';
-const BASE_URL = import.meta.env.VITE_NODE_BACKEND_URL || 'http://localhost:8000';
+const BASE_URL = import.meta.env.VITE_NODE_BACKEND_URL || 'https://wonderfloor-dashboard-frontend.vercel.app';
 
 const NAV_CATEGORIES = [
   { id: 'Flooring Products', label: 'Flooring Products' },
