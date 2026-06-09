@@ -41,7 +41,8 @@ export default function Overview() {
     setLoading(true);
     try {
       // UPDATED TO POINT TO LIVE VERCEL BACKEND
-      const response = await fetch('https://wonderfloor-dashboard.vercel.app/dashboard-stats');
+      // const response = await fetch('https://wonderfloor-dashboard.vercel.app/dashboard-stats');
+       const response = await fetch('http://localhost:8000/dashboard-stats');
       if (response.ok) {
         const data = await response.json();
         setDashboardData(data);
