@@ -116,7 +116,7 @@ export default function RoomManager() {
 
     setTogglingCat(categoryName);
     try {
-      const res = await fetch('http://localhost:8000/rooms/bulk-toggle-live', {
+      const res = await fetch('https://wonderfloor-dashboard.vercel.app/rooms/bulk-toggle-live', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ category: categoryName, isLive: nextState }),
