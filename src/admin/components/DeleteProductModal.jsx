@@ -1,7 +1,7 @@
 // DeleteProductModal.jsx
 import { useState, useEffect } from 'react';
 
-const BASE_URL = import.meta.env.VITE_NODE_BACKEND_URL || 'http://localhost:8000';
+const BASE_URL = import.meta.env.VITE_NODE_BACKEND_URL || 'https://wonderfloor-dashboard-frontend.vercel.app';
 
 export default function DeleteProductModal({ product, onClose, onSuccess }) {
   const [isDeleting, setIsDeleting] = useState(false);
