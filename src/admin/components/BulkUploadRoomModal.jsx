@@ -125,7 +125,7 @@ export default function BulkUploadRoomModal({ onClose, onSuccess }) {
       if (maskFile) formData.append('maskImage', maskFile);
 
       try {
-        const res = await fetch('http://localhost:8000/upload/room', {
+        const res = await fetch('https://wonderfloor-dashboard-frontend.vercel.app/upload/room', {
           method: 'POST',
           body: formData,
         });
