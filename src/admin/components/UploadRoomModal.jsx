@@ -80,7 +80,7 @@ export default function UploadRoomModal({ onClose, onSuccess }) {
     formData.append('supportedCollections', JSON.stringify(selectedCollections));
 
     try {
-      const response = await fetch('https://wonderfloor-dashboard-frontend.vercel.app/upload/room', {
+      const response = await fetch('https://wonderfloor-dashboard.vercel.app/upload/room', {
         method: 'POST',
         body: formData,
       });
