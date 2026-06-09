@@ -69,7 +69,7 @@ export default function RoomManager() {
   async function fetchRoomsData() {
     setLoading(true);
     try {
-      const response = await fetch('http://localhost:8000/rooms');
+      const response = await fetch('https://wonderfloor-dashboard.vercel.app/rooms');
       if (!response.ok) throw new Error('Failed to fetch data');
       const data = await response.json();
       setRooms(data.map(r => ({ ...r, isLive: r.isLive === true })));
