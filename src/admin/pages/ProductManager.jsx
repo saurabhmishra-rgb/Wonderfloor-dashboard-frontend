@@ -122,12 +122,12 @@ export default function ProductManager() {
     .every(p => p.isVisible !== false);
 
 
-  /* ── derived data ── */
+/* ── derived data ── */
   const filteredProducts = products.filter(p => {
     // 1. Category tab filtering
     const matchType = activeType === 'All' || p.navCategory === activeType;
 
-    // 2. Dropdown collection filtering (Ignore collection block if user is actively searching)
+    // 2. Dropdown collection filtering
     const matchCollection = searchQuery ? true : (!selectedCollection || p.accordionCategory === selectedCollection);
 
     // 3. Comprehensive Global search query filtering
@@ -138,12 +138,12 @@ export default function ProductManager() {
       (p.navCategory?.toLowerCase().includes(q)) ||
       (p.accordionCategory?.toLowerCase().includes(q)) ||
       (p.size?.toLowerCase().includes(q)) ||
-
-      // ── NEW ADVANCED SEARCH CRITERIA ──
-      (p.colour?.toLowerCase().includes(q)) || // <-- Checks Color Family (e.g., "Grey", "Beige")
-      (p.shade?.toLowerCase().includes(q)) ||  // <-- Checks Shade Value (e.g., "Light", "Dark")
-      (Array.isArray(p.userIndustry) &&        // <-- Safely checks the target industry tags array
-        p.userIndustry.some(industry => industry?.toLowerCase().includes(q)));
+      (p.colour?.toLowerCase().includes(q)) || 
+      (p.shade?.toLowerCase().includes(q)) ||  
+      (Array.isArray(p.userIndustry) && p.userIndustry.some(industry => industry?.toLowerCase().includes(q))) ||
+      // NEW: Check if the search query matches any custom searchable tags
+      (Array.isArray(p.tags) && p.tags.some(tag => tag?.toLowerCase().includes(q))) ||
+      (typeof p.tags === 'string' && p.tags.toLowerCase().includes(q));
 
     return matchType && matchCollection && matchSearch;
   });
