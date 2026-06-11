@@ -6,7 +6,7 @@ import BulkUploadModal from '../components/BulkUploadTile';
 import ProductDetailModal from './ProductDetailModal';
 import VisibilityToggle from '../components/VisibilityToggle';
 import DeleteProductModal from '../components/DeleteProductModal';
-import {useSearch} from '../components/SearchContext'; // <-- Import the search context hook
+import { useSearch } from '../components/SearchContext'; // <-- Import the search context hook
 /* ─── icons ──────────────────────────────────────────────────────── */
 const Icon = {
   grid: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><rect x="3" y="3" width="7" height="7" /><rect x="14" y="3" width="7" height="7" /><rect x="14" y="14" width="7" height="7" /><rect x="3" y="14" width="7" height="7" /></svg>,
@@ -42,13 +42,15 @@ export default function ProductManager() {
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [activeType, setActiveType] = useState('All');
- 
+
   const [selectedCollection, setSelectedCollection] = useState(null);
   const [isTileModalOpen, setIsTileModalOpen] = useState(false);
   const [isBulkModalOpen, setIsBulkModalOpen] = useState(false);
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
   const [viewMode, setViewMode] = useState('list');
 
+  const [editingCollection, setEditingCollection] = useState(null);
+  const [editingValue, setEditingValue] = useState('');
 
   // detail modal state — id + which mode to open in
   const [detailProductId, setDetailProductId] = useState(null);
@@ -64,6 +66,29 @@ export default function ProductManager() {
   function openDetail(id) { setDetailProductId(id); setDetailMode('view'); }
   function openEdit(id, e) { e?.stopPropagation(); setDetailProductId(id); setDetailMode('edit'); }
   function closeDetail() { setDetailProductId(null); setDetailMode('view'); }
+
+  async function handleRenameCollection(oldName, newName) {
+    const trimmed = newName.trim();
+    setEditingCollection(null);
+    if (!trimmed || trimmed === oldName) return;
+
+    const colProducts = products.filter(p => p.accordionCategory === oldName);
+    await Promise.all(
+      colProducts.map(p =>
+        fetch(`${BASE_URL}/products/${p._id}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ accordionCategory: trimmed }),
+        })
+      )
+    );
+    // Optimistic local update — no full refetch needed
+    setProducts(prev =>
+      prev.map(p =>
+        p.accordionCategory === oldName ? { ...p, accordionCategory: trimmed } : p
+      )
+    );
+  }
 
   /* ── data fetching ── */
   async function fetchProductsData() {
@@ -97,23 +122,23 @@ export default function ProductManager() {
     .every(p => p.isVisible !== false);
 
 
- /* ── derived data ── */
+  /* ── derived data ── */
   const filteredProducts = products.filter(p => {
     // 1. Category tab filtering
     const matchType = activeType === 'All' || p.navCategory === activeType;
-    
+
     // 2. Dropdown collection filtering (Ignore collection block if user is actively searching)
     const matchCollection = searchQuery ? true : (!selectedCollection || p.accordionCategory === selectedCollection);
-    
+
     // 3. Comprehensive Global search query filtering
     const q = searchQuery.toLowerCase();
-    const matchSearch = 
-      (p.name?.toLowerCase().includes(q)) || 
+    const matchSearch =
+      (p.name?.toLowerCase().includes(q)) ||
       (p.sku?.toLowerCase().includes(q)) ||
       (p.navCategory?.toLowerCase().includes(q)) ||
       (p.accordionCategory?.toLowerCase().includes(q)) ||
       (p.size?.toLowerCase().includes(q)) ||
-      
+
       // ── NEW ADVANCED SEARCH CRITERIA ──
       (p.colour?.toLowerCase().includes(q)) || // <-- Checks Color Family (e.g., "Grey", "Beige")
       (p.shade?.toLowerCase().includes(q)) ||  // <-- Checks Shade Value (e.g., "Light", "Dark")
@@ -340,61 +365,97 @@ export default function ProductManager() {
 
           {/* ── content states ── */}
           {loading ? (
-          <div className="text-center py-24 text-[#aaaaaa] text-sm bg-white rounded-xl border border-[#e8e8e8] mx-2">
-            <svg className="mx-auto mb-3 opacity-30 animate-spin" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-              <path d="M21 12a9 9 0 1 1-6.219-8.56" />
-            </svg>
-            Syncing database asset structures…
-          </div>
+            <div className="text-center py-24 text-[#aaaaaa] text-sm bg-white rounded-xl border border-[#e8e8e8] mx-2">
+              <svg className="mx-auto mb-3 opacity-30 animate-spin" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+                <path d="M21 12a9 9 0 1 1-6.219-8.56" />
+              </svg>
+              Syncing database asset structures…
+            </div>
 
-          /* collection grid (type selected, no collection drilled in, and NO active search) */
-        ) : activeType !== 'All' && !selectedCollection && !searchQuery ? (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 md:gap-5">
-            {uniqueCollections.map(col => {
-              const colVisible = isCollectionVisible(col);
-              const colProducts = products.filter(p => p.accordionCategory === col);
-              return (
-                <div
-                  key={col}
-                  onClick={() => setSelectedCollection(col)}
-                  className="bg-white border border-[#e8e8e8] rounded-xl overflow-hidden flex flex-col group shadow-sm hover:shadow-md transition-all duration-200 cursor-pointer hover:-translate-y-0.5"
-                >
-                  <div className="h-32 w-full overflow-hidden bg-[#fafafa] border-b border-[#f0f0f0] relative">
-                    <img
-                      src={getCollectionThumbnail(col)} alt={col}
-                      className="w-full h-full object-cover opacity-85 group-hover:opacity-100 transition-all duration-300"
-                      onError={e => { e.target.src = 'https://placehold.co/300x200?text=Folder'; }}
-                    />
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
-                    <div className="absolute top-2 right-2 z-10 flex items-center gap-1.5 bg-white/90 backdrop-blur-sm px-2 py-1 rounded-full shadow-sm border border-gray-200" onClick={e => e.stopPropagation()}>
-                      <span className={`text-[10px] font-semibold ${colVisible ? 'text-[#0b9e7a]' : 'text-gray-400'}`}>
-                        {colVisible ? 'Live' : 'Hidden'}
-                      </span>
-                      <button
-                        onClick={async e => {
-                          e.stopPropagation();
-                          const next = !colVisible;
-                          await Promise.all(colProducts.map(p => fetch(`${BASE_URL}/products/${p._id}/visibility`, { method: 'PATCH' })));
-                          setProducts(prev => prev.map(p => p.accordionCategory === col ? { ...p, isVisible: next } : p));
-                        }}
-                        className={`relative inline-flex h-5 w-9 shrink-0 items-center rounded-full border-2 transition-colors duration-200 cursor-pointer focus:outline-none ${colVisible ? 'bg-[#0b9e7a] border-[#0b9e7a]' : 'bg-gray-300 border-gray-300'}`}
-                      >
-                        <span className={`inline-block h-3 w-3 rounded-full bg-white shadow transition-transform duration-200 ${colVisible ? 'translate-x-4' : 'translate-x-0.5'}`} />
-                      </button>
+            /* collection grid (type selected, no collection drilled in, and NO active search) */
+          ) : activeType !== 'All' && !selectedCollection && !searchQuery ? (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 md:gap-5">
+              {uniqueCollections.map(col => {
+                const colVisible = isCollectionVisible(col);
+                const colProducts = products.filter(p => p.accordionCategory === col);
+                return (
+                  <div
+                    key={col}
+                    onClick={() => setSelectedCollection(col)}
+                    className="bg-white border border-[#e8e8e8] rounded-xl overflow-hidden flex flex-col group shadow-sm hover:shadow-md transition-all duration-200 cursor-pointer hover:-translate-y-0.5"
+                  >
+                    <div className="h-32 w-full overflow-hidden bg-[#fafafa] border-b border-[#f0f0f0] relative">
+                      <img
+                        src={getCollectionThumbnail(col)} alt={col}
+                        className="w-full h-full object-cover opacity-85 group-hover:opacity-100 transition-all duration-300"
+                        onError={e => { e.target.src = 'https://placehold.co/300x200?text=Folder'; }}
+                      />
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+                      <div className="absolute top-2 right-2 z-10 flex items-center gap-1.5 bg-white/90 backdrop-blur-sm px-2 py-1 rounded-full shadow-sm border border-gray-200" onClick={e => e.stopPropagation()}>
+                        <span className={`text-[10px] font-semibold ${colVisible ? 'text-[#0b9e7a]' : 'text-gray-400'}`}>
+                          {colVisible ? 'Live' : 'Hidden'}
+                        </span>
+                        <button
+                          onClick={async e => {
+                            e.stopPropagation();
+                            const next = !colVisible;
+                            await Promise.all(colProducts.map(p => fetch(`${BASE_URL}/products/${p._id}/visibility`, { method: 'PATCH' })));
+                            setProducts(prev => prev.map(p => p.accordionCategory === col ? { ...p, isVisible: next } : p));
+                          }}
+                          className={`relative inline-flex h-5 w-9 shrink-0 items-center rounded-full border-2 transition-colors duration-200 cursor-pointer focus:outline-none ${colVisible ? 'bg-[#0b9e7a] border-[#0b9e7a]' : 'bg-gray-300 border-gray-300'}`}
+                        >
+                          <span className={`inline-block h-3 w-3 rounded-full bg-white shadow transition-transform duration-200 ${colVisible ? 'translate-x-4' : 'translate-x-0.5'}`} />
+                        </button>
+                      </div>
+                    </div>
+                    <div className="p-4 flex items-center justify-between bg-white">
+
+                      {/* ── Inline editable name ── */}
+                      {editingCollection === col ? (
+                        <input
+                          autoFocus
+                          value={editingValue}
+                          onChange={e => setEditingValue(e.target.value)}
+                          onBlur={() => handleRenameCollection(col, editingValue)}
+                          onKeyDown={e => {
+                            if (e.key === 'Enter') handleRenameCollection(col, editingValue);
+                            if (e.key === 'Escape') setEditingCollection(null);
+                          }}
+                          onClick={e => e.stopPropagation()}  // don't drill into collection
+                          className="text-[14px] font-bold text-gray-800 tracking-tight border-b-2
+                 border-[#0b9e7a] focus:outline-none bg-transparent w-full pr-2"
+                        />
+                      ) : (
+                        <h3 className="text-[14px] font-bold text-gray-800 tracking-tight
+                   group-hover:text-[#0b9e7a] transition-colors truncate pr-2">
+                          {col}
+                        </h3>
+                      )}
+
+                      {/* ── Count badge + edit pencil ── */}
+                      <div className="flex items-center gap-1.5 shrink-0">
+                        <button
+                          onClick={e => {
+                            e.stopPropagation();
+                            setEditingCollection(col);
+                            setEditingValue(col);
+                          }}
+                          className="text-[#cccccc] hover:text-[#0b9e7a] p-1 rounded transition-colors"
+                          title="Rename collection"
+                        >
+                          {Icon.edit}
+                        </button>
+                        <span className="text-[11px] font-semibold px-2.5 py-0.5 bg-gray-100 text-gray-500
+                     rounded-full group-hover:bg-[#edf9f5] group-hover:text-[#0b9e7a] transition-colors">
+                          {getCollectionItemCount(col)}
+                        </span>
+                      </div>
+
                     </div>
                   </div>
-                  <div className="p-4 flex items-center justify-between bg-white">
-                    <h3 className="text-[14px] font-bold text-gray-800 tracking-tight group-hover:text-[#0b9e7a] transition-colors truncate pr-2">
-                      {col}
-                    </h3>
-                    <span className="shrink-0 text-[11px] font-semibold px-2.5 py-0.5 bg-gray-100 text-gray-500 rounded-full group-hover:bg-[#edf9f5] group-hover:text-[#0b9e7a] transition-colors">
-                      {getCollectionItemCount(col)}
-                    </span>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
+                );
+              })}
+            </div>
 
             /* product list / grid */
           ) : (
