@@ -3,15 +3,15 @@ import { useState, useRef } from 'react';
 const BASE_URL = import.meta.env.VITE_NODE_BACKEND_URL || 'https://wonderfloor-dashboard.vercel.app';
 
 // ─── Initial data constants ───────────────────────────────────────────────────
-const INITIAL_NAV_CATEGORIES  = ['Flooring Products', 'Luxury Vinyl Tile'];
-const INITIAL_COLLECTIONS     = [
+const INITIAL_NAV_CATEGORIES = ['Flooring Products', 'Luxury Vinyl Tile'];
+const INITIAL_COLLECTIONS = [
   'Braavo', 'Krayons', 'Durofloor', 'Siggma', 'Orbit', 'Stoneland Monza',
   'Meteor', 'Aventus', 'Timberworld 1.5mm', 'Timberland Exotica 2mm',
   'Timberland Maestro 3mm', 'Timberland Widex', 'Timberland Herringbone',
   'Grandeure Supreme',
 ];
-const INITIAL_SHADES          = ['Light', 'Medium', 'Dark'];
-const INITIAL_COLOR_FAMILIES  = [
+const INITIAL_SHADES = ['Light', 'Medium', 'Dark'];
+const INITIAL_COLOR_FAMILIES = [
   'Grey', 'Beige', 'Brown', 'Black', 'White',
   'Blue', 'Green', 'Red', 'Orange', 'Yellow', 'Purple', 'Pink',
 ];
@@ -22,10 +22,10 @@ const INITIAL_USER_INDUSTRIES = [
 
 // ─── Persistent Memory (Lives outside the modal unmount lifecycle) ────────────
 let persistentNavCategories = [...INITIAL_NAV_CATEGORIES];
-let persistentCollections   = [...INITIAL_COLLECTIONS];
+let persistentCollections = [...INITIAL_COLLECTIONS];
 let persistentColorFamilies = [...INITIAL_COLOR_FAMILIES];
-let persistentShadeOptions  = [...INITIAL_SHADES];
-let persistentIndustries    = [...INITIAL_USER_INDUSTRIES];
+let persistentShadeOptions = [...INITIAL_SHADES];
+let persistentIndustries = [...INITIAL_USER_INDUSTRIES];
 
 // ─── Image Compression Utility ────────────────────────────────────────────────
 const compressImage = (file, { maxDimension = 1200, quality = 0.8 } = {}) =>
@@ -35,9 +35,9 @@ const compressImage = (file, { maxDimension = 1200, quality = 0.8 } = {}) =>
       const img = new Image();
       img.onload = () => {
         const { width, height } = img;
-        const ratio  = Math.min(maxDimension / width, maxDimension / height, 1);
+        const ratio = Math.min(maxDimension / width, maxDimension / height, 1);
         const canvas = document.createElement('canvas');
-        canvas.width  = Math.round(width  * ratio);
+        canvas.width = Math.round(width * ratio);
         canvas.height = Math.round(height * ratio);
         canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height);
         canvas.toBlob(
@@ -57,7 +57,7 @@ const compressImage = (file, { maxDimension = 1200, quality = 0.8 } = {}) =>
   });
 
 const formatBytes = (bytes) => {
-  if (bytes < 1024)        return `${bytes} B`;
+  if (bytes < 1024) return `${bytes} B`;
   if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(0)} KB`;
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 };
@@ -73,10 +73,10 @@ function ToggleSelectField({
   selectPlaceholder = 'Select…',
   createPlaceholder,
 }) {
-  const [isCustom,      setIsCustom]      = useState(false);
-  const [customValue,   setCustomValue]   = useState('');
+  const [isCustom, setIsCustom] = useState(false);
+  const [customValue, setCustomValue] = useState('');
   const [selectedValue, setSelectedValue] = useState('');
-  const [isOpen,        setIsOpen]        = useState(false);
+  const [isOpen, setIsOpen] = useState(false);
 
   const handleToggle = () => {
     setIsCustom((prev) => !prev);
@@ -92,7 +92,7 @@ function ToggleSelectField({
     const val = customValue.trim();
     if (val) {
       if (!options.includes(val)) onAddOption(val);
-      setSelectedValue(val); 
+      setSelectedValue(val);
       setIsCustom(false);
       setCustomValue('');
     }
@@ -136,7 +136,7 @@ function ToggleSelectField({
         /* ── Custom Dropdown Menu ── */
         <div className="relative">
           <input type="hidden" name={name} value={selectedValue} required={required} />
-          
+
           <div
             onClick={() => setIsOpen(!isOpen)}
             className="w-full bg-white border border-slate-200 rounded-lg px-4 py-2.5 text-slate-800 text-sm border-slate-200 focus-within:border-[#0b9e7a] focus-within:ring-1 focus-within:ring-[#0b9e7a] transition-all flex justify-between items-center cursor-pointer select-none"
@@ -154,7 +154,7 @@ function ToggleSelectField({
           {isOpen && (
             <>
               <div className="fixed inset-0 z-20" onClick={() => setIsOpen(false)}></div>
-              
+
               <ul className="absolute z-30 w-full mt-1 bg-white border border-slate-200 rounded-lg shadow-lg max-h-60 overflow-y-auto py-1">
                 <li
                   onClick={() => handleSelect('')}
@@ -181,7 +181,7 @@ function ToggleSelectField({
                     >
                       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                         <line x1="18" y1="6" x2="6" y2="18" />
-                        <line x1="6"  y1="6" x2="18" y2="18" />
+                        <line x1="6" y1="6" x2="18" y2="18" />
                       </svg>
                     </button>
                   </li>
@@ -197,23 +197,23 @@ function ToggleSelectField({
 
 // ─── UploadTileModal ──────────────────────────────────────────────────────────
 export default function UploadTileModal({ onClose, onSuccess }) {
-  const [loading,     setLoading]     = useState(false);
+  const [loading, setLoading] = useState(false);
   const [uploadStage, setUploadStage] = useState('');
-  const [error,       setError]       = useState(null);
+  const [error, setError] = useState(null);
 
   const [selectedIndustries, setSelectedIndustries] = useState([]);
-  const [tilePreview,        setTilePreview]         = useState(null);
-  const [tileFileMeta,       setTileFileMeta]        = useState(null);
+  const [tilePreview, setTilePreview] = useState(null);
+  const [tileFileMeta, setTileFileMeta] = useState(null);
 
   // ── Persistent Synchronized Component States ────────────────────────────────
-  const [navCategories,  setNavCategories]  = useState(persistentNavCategories);
-  const [collections,    setCollections]    = useState(persistentCollections);
-  const [colorFamilies,  setColorFamilies]  = useState(persistentColorFamilies);
-  const [shadeOptions,   setShadeOptions]   = useState(persistentShadeOptions);
-  const [industries,     setIndustries]     = useState(persistentIndustries);
+  const [navCategories, setNavCategories] = useState(persistentNavCategories);
+  const [collections, setCollections] = useState(persistentCollections);
+  const [colorFamilies, setColorFamilies] = useState(persistentColorFamilies);
+  const [shadeOptions, setShadeOptions] = useState(persistentShadeOptions);
+  const [industries, setIndustries] = useState(persistentIndustries);
   const [newIndustryInput, setNewIndustryInput] = useState('');
 
-  const formRef    = useRef(null);
+  const formRef = useRef(null);
   const rawFileRef = useRef(null);
 
   // ── Industry helpers ────────────────────────────────────────────────────────
@@ -226,7 +226,7 @@ export default function UploadTileModal({ onClose, onSuccess }) {
     e.preventDefault();
     const val = newIndustryInput.trim();
     if (!val) return;
-    
+
     if (!industries.includes(val)) {
       setIndustries((prev) => {
         const updated = [...prev, val];
@@ -234,7 +234,7 @@ export default function UploadTileModal({ onClose, onSuccess }) {
         return updated;
       });
     }
-    
+
     if (!selectedIndustries.includes(val)) {
       setSelectedIndustries((prev) => [...prev, val]);
     }
@@ -271,34 +271,41 @@ export default function UploadTileModal({ onClose, onSuccess }) {
 
       setUploadStage('Uploading image to Cloudinary…');
       const cloudinaryForm = new FormData();
-      cloudinaryForm.append('file',      compressedFile);
+      cloudinaryForm.append('file', compressedFile);
       cloudinaryForm.append('signature', signature);
       cloudinaryForm.append('timestamp', String(timestamp));
-      cloudinaryForm.append('api_key',   apiKey);
-      cloudinaryForm.append('folder',    folder);
+      cloudinaryForm.append('api_key', apiKey);
+      cloudinaryForm.append('folder', folder);
 
-      const cloudRes  = await fetch(
+      const cloudRes = await fetch(
         `https://api.cloudinary.com/v1_1/${cloudName}/image/upload`,
         { method: 'POST', body: cloudinaryForm },
       );
       const cloudData = await cloudRes.json();
       if (!cloudRes.ok) throw new Error(cloudData.error?.message || 'Cloudinary upload failed');
 
-      setUploadStage('Saving product…');
+    setUploadStage('Saving product…');
       const formData = new FormData(formRef.current);
       formData.delete('tileImage');
-      formData.append('imageUrl',     cloudData.secure_url);
+      formData.append('imageUrl', cloudData.secure_url);
       formData.append('userIndustry', JSON.stringify(selectedIndustries));
 
+      // NEW: Intercept the raw tags string, format it, and overwrite it
+      const rawTags = formData.get('tags');
+      if (rawTags) {
+        const tagsArray = rawTags.split(',').map(t => t.trim()).filter(Boolean);
+        formData.set('tags', JSON.stringify(tagsArray));
+      }
+
       const response = await fetch(`${BASE_URL}/upload/product`, { method: 'POST', body: formData });
-      const data     = await response.json();
+      const data = await response.json();
       if (!response.ok) throw new Error(data.error || 'Failed to save product');
 
       // ── Backup Submit Fallback Auto-Saver ───────────────────────────────────
       const savedNavCategory = formData.get('navCategory');
-      const savedCollection  = formData.get('accordionCategory');
-      const savedColour      = formData.get('colour');
-      const savedShade       = formData.get('shade');
+      const savedCollection = formData.get('accordionCategory');
+      const savedColour = formData.get('colour');
+      const savedShade = formData.get('shade');
 
       if (savedNavCategory && !persistentNavCategories.includes(savedNavCategory)) {
         persistentNavCategories = [...persistentNavCategories, savedNavCategory];
@@ -351,8 +358,8 @@ export default function UploadTileModal({ onClose, onSuccess }) {
             className="text-slate-400 hover:text-slate-600 transition-colors cursor-pointer p-1 rounded-lg hover:bg-slate-50"
           >
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <line x1="18" y1="6"  x2="6"  y2="18" />
-              <line x1="6"  y1="6"  x2="18" y2="18" />
+              <line x1="18" y1="6" x2="6" y2="18" />
+              <line x1="6" y1="6" x2="18" y2="18" />
             </svg>
           </button>
         </div>
@@ -399,6 +406,18 @@ export default function UploadTileModal({ onClose, onSuccess }) {
               />
             </div>
 
+            {/* NEW: Searchable Tags */}
+            <div className="md:col-span-2 lg:col-span-3">
+              <label className="block text-[13px] font-semibold text-slate-600 mb-1.5">Searchable Tags (Comma Separated)</label>
+              <input
+                type="text" name="tags"
+                placeholder="e.g., mint, dark green, eco-friendly, pastel"
+                className="w-full bg-white border border-slate-200 rounded-lg px-4 py-2.5 text-slate-800 text-sm focus:border-[#0b9e7a] focus:ring-1 focus:ring-[#0b9e7a] focus:outline-none transition-all placeholder:text-slate-400"
+              />
+              <span className="text-[10px] text-slate-400 mt-1 block">
+                Add alternate names or keywords to help users find this tile in search.
+              </span>
+            </div>
             {/* ── Dynamic Toggle Select Fields ── */}
             <ToggleSelectField
               label="Main Nav Category"
@@ -508,7 +527,7 @@ export default function UploadTileModal({ onClose, onSuccess }) {
                       </div>
                       <span className="text-xs font-medium text-slate-600 group-hover:text-slate-900 transition-colors truncate pr-4">{ind}</span>
                     </label>
-                    
+
                     <button
                       type="button"
                       onClick={() => {
@@ -524,13 +543,13 @@ export default function UploadTileModal({ onClose, onSuccess }) {
                     >
                       <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                         <line x1="18" y1="6" x2="6" y2="18" />
-                        <line x1="6"  y1="6" x2="18" y2="18" />
+                        <line x1="6" y1="6" x2="18" y2="18" />
                       </svg>
                     </button>
                   </div>
                 ))}
               </div>
-              
+
               <div className="flex gap-2 pt-3 border-t border-slate-100">
                 <input
                   type="text"
