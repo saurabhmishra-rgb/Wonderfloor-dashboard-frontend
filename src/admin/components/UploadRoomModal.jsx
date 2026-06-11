@@ -13,18 +13,23 @@ const INITIAL_PRODUCT_COLLECTIONS = [
   'Timberland Maestro 3mm', 'Timberland Herringbone'
 ];
 
+// ─── Persistent Memory (Lives outside the modal lifecycle) ────────────────────
+let persistentRoomCategories     = [...INITIAL_ROOM_CATEGORIES];
+let persistentProductCollections = [...INITIAL_PRODUCT_COLLECTIONS];
+
 export default function UploadRoomModal({ onClose, onSuccess }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
-  // ── Collections state (now dynamic) ──
-  const [selectedCollections, setSelectedCollections] = useState([]);
-  const [collections, setCollections] = useState(INITIAL_PRODUCT_COLLECTIONS);
-  const [newCollectionInput, setNewCollectionInput] = useState('');
-
-  // ── Industry Category state (now dynamic) ──
-  const [categories, setCategories] = useState(INITIAL_ROOM_CATEGORIES);
+  // ── Persistent Synchronized Component States ────────────────────────────────
+  const [categories, setCategories] = useState(persistentRoomCategories);
   const [newCategoryInput, setNewCategoryInput] = useState('');
+  const [selectedCategory, setSelectedCategory] = useState('');
+  const [isCategoryOpen, setIsCategoryOpen] = useState(false);
+
+  const [collections, setCollections] = useState(persistentProductCollections);
+  const [newCollectionInput, setNewCollectionInput] = useState('');
+  const [selectedCollections, setSelectedCollections] = useState([]);
 
   // ── Image previews ──
   const [basePreview, setBasePreview] = useState(null);
@@ -47,8 +52,13 @@ export default function UploadRoomModal({ onClose, onSuccess }) {
     const clean = newCategoryInput.trim();
     if (!clean) return;
     if (!categories.includes(clean)) {
-      setCategories(prev => [...prev, clean]);
+      setCategories(prev => {
+        const updated = [...prev, clean];
+        persistentRoomCategories = updated;
+        return updated;
+      });
     }
+    setSelectedCategory(clean);
     setNewCategoryInput('');
   };
 
@@ -58,7 +68,11 @@ export default function UploadRoomModal({ onClose, onSuccess }) {
     const clean = newCollectionInput.trim();
     if (!clean) return;
     if (!collections.includes(clean)) {
-      setCollections(prev => [...prev, clean]);
+      setCollections(prev => {
+        const updated = [...prev, clean];
+        persistentProductCollections = updated;
+        return updated;
+      });
     }
     if (!selectedCollections.includes(clean)) {
       setSelectedCollections(prev => [...prev, clean]);
@@ -128,24 +142,68 @@ export default function UploadRoomModal({ onClose, onSuccess }) {
               />
             </div>
 
-            {/* ── Industry Category — dropdown + inline adder ── */}
+            {/* ── Industry Category — Interactive custom dropdown ── */}
             <div>
-              <div className="flex justify-between items-center mb-1.5">
-                <label className="block text-[13px] font-semibold text-slate-600">Industry Category</label>
-              </div>
+              <label className="block text-[13px] font-semibold text-slate-600 mb-1.5">Industry Category</label>
               <div className="relative">
-                <select
-                  name="category" required
-                  className="w-full bg-white border border-slate-200 rounded-lg px-4 py-2.5 text-slate-800 text-sm focus:border-[#0b9e7a] focus:ring-1 focus:ring-[#0b9e7a] focus:outline-none transition-all appearance-none cursor-pointer"
+                {/* Hidden field passes dropdown value directly to core FormData object */}
+                <input type="hidden" name="category" value={selectedCategory} required />
+                
+                <div
+                  onClick={() => setIsCategoryOpen(!isCategoryOpen)}
+                  className="w-full bg-white border border-slate-200 rounded-lg px-4 py-2.5 text-slate-800 text-sm focus-within:border-[#0b9e7a] focus-within:ring-1 focus-within:ring-[#0b9e7a] transition-all flex justify-between items-center cursor-pointer select-none"
                 >
-                  <option value="">Select industry...</option>
-                  {categories.map(cat => (
-                    <option key={cat} value={cat}>{cat}</option>
-                  ))}
-                </select>
-                <div className="absolute inset-y-0 right-0 flex items-center pr-4 pointer-events-none text-slate-400">
-                  <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M19 9l-7 7-7-7"/></svg>
+                  <span className={selectedCategory ? 'text-slate-800' : 'text-slate-400'}>
+                    {selectedCategory || 'Select industry...'}
+                  </span>
+                  <div className="text-slate-400">
+                    <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24" className={`transition-transform duration-200 ${isCategoryOpen ? 'rotate-180' : ''}`}>
+                      <path d="M19 9l-7 7-7-7" />
+                    </svg>
+                  </div>
                 </div>
+
+                {isCategoryOpen && (
+                  <>
+                    <div className="fixed inset-0 z-20" onClick={() => setIsCategoryOpen(false)}></div>
+                    <ul className="absolute z-30 w-full mt-1 bg-white border border-slate-200 rounded-lg shadow-lg max-h-60 overflow-y-auto py-1">
+                      <li
+                        onClick={() => { setSelectedCategory(''); setIsCategoryOpen(false); }}
+                        className="px-4 py-2 text-sm text-slate-400 hover:bg-slate-50 cursor-pointer"
+                      >
+                        Select industry...
+                      </li>
+                      {categories.map(cat => (
+                        <li
+                          key={cat}
+                          className="group px-4 py-2 text-sm text-slate-800 hover:bg-slate-50 flex justify-between items-center cursor-pointer"
+                          onClick={() => { setSelectedCategory(cat); setIsCategoryOpen(false); }}
+                        >
+                          <span className="truncate flex-1">{cat}</span>
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setCategories(prev => {
+                                const updated = prev.filter(c => c !== cat);
+                                persistentRoomCategories = updated;
+                                return updated;
+                              });
+                              if (selectedCategory === cat) setSelectedCategory('');
+                            }}
+                            className="text-slate-400 hover:text-red-500 p-1 rounded hover:bg-slate-200/60 opacity-0 group-hover:opacity-100 transition-all ml-2"
+                            title={`Remove ${cat}`}
+                          >
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                              <line x1="18" y1="6" x2="6" y2="18" />
+                              <line x1="6"  y1="6" x2="18" y2="18" />
+                            </svg>
+                          </button>
+                        </li>
+                      ))}
+                    </ul>
+                  </>
+                )}
               </div>
 
               {/* Inline custom category adder */}
@@ -176,26 +234,47 @@ export default function UploadRoomModal({ onClose, onSuccess }) {
             <div className="bg-white border border-slate-200 rounded-lg p-4 shadow-sm flex flex-col gap-4">
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
                 {collections.map(collection => (
-                  <label key={collection} className="flex items-center gap-2.5 cursor-pointer group py-1">
-                    <input
-                      type="checkbox" className="hidden"
-                      checked={selectedCollections.includes(collection)}
-                      onChange={() => toggleCollection(collection)}
-                    />
-                    <div className={`w-4 h-4 rounded flex items-center justify-center border transition-all
-                      ${selectedCollections.includes(collection)
-                        ? 'bg-[#0b9e7a] border-[#0b9e7a]'
-                        : 'bg-slate-50 border-slate-300 group-hover:border-slate-400'}`}>
-                      {selectedCollections.includes(collection) && (
-                        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3">
-                          <polyline points="20 6 9 17 4 12"/>
-                        </svg>
-                      )}
-                    </div>
-                    <span className="text-xs font-medium text-slate-600 group-hover:text-slate-900 transition-colors truncate">
-                      {collection}
-                    </span>
-                  </label>
+                  <div key={collection} className="relative group flex items-center justify-between py-1 px-2 border border-transparent hover:border-slate-100 rounded-lg transition-all">
+                    <label className="flex items-center gap-2.5 cursor-pointer flex-1 min-w-0">
+                      <input
+                        type="checkbox" className="hidden"
+                        checked={selectedCollections.includes(collection)}
+                        onChange={() => toggleCollection(collection)}
+                      />
+                      <div className={`w-4 h-4 rounded flex items-center justify-center border shrink-0 transition-all
+                        ${selectedCollections.includes(collection)
+                          ? 'bg-[#0b9e7a] border-[#0b9e7a]'
+                          : 'bg-slate-50 border-slate-300 group-hover:border-slate-400'}`}>
+                        {selectedCollections.includes(collection) && (
+                          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3">
+                            <polyline points="20 6 9 17 4 12"/>
+                          </svg>
+                        )}
+                      </div>
+                      <span className="text-xs font-medium text-slate-600 group-hover:text-slate-900 transition-colors truncate pr-4">
+                        {collection}
+                      </span>
+                    </label>
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setCollections(prev => {
+                          const updated = prev.filter(c => c !== collection);
+                          persistentProductCollections = updated;
+                          return updated;
+                        });
+                        setSelectedCollections(prev => prev.filter(c => c !== collection));
+                      }}
+                      className="text-slate-400 hover:text-red-500 p-0.5 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap animate-fade-in"
+                      title={`Remove ${collection}`}
+                    >
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <line x1="18" y1="6" x2="6" y2="18" />
+                        <line x1="6"  y1="6" x2="18" y2="18" />
+                      </svg>
+                    </button>
+                  </div>
                 ))}
               </div>
 
@@ -221,12 +300,10 @@ export default function UploadRoomModal({ onClose, onSuccess }) {
 
           {/* ── Image Uploads ── */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-
-            {/* Base Image — required */}
+            {/* Base Image */}
             <div>
               <label className="block text-[13px] font-semibold text-slate-600 mb-1.5">
-                Base Image (JPG/PNG)
-                <span className="text-red-400 ml-1">*</span>
+                Base Image (JPG/PNG) <span className="text-red-400 ml-1">*</span>
               </label>
               <div className="relative w-full h-40 bg-white border-2 border-dashed border-slate-200 hover:border-[#0b9e7a] rounded-xl flex items-center justify-center overflow-hidden transition-all group cursor-pointer shadow-sm">
                 <input
@@ -252,19 +329,13 @@ export default function UploadRoomModal({ onClose, onSuccess }) {
               </div>
             </div>
 
-            {/* ── Mask Image — OPTIONAL ── */}
+            {/* Mask Image */}
             <div>
               <div className="flex items-center gap-2 mb-1.5">
-                <label className="block text-[13px] font-semibold text-slate-600">
-                  Mask Image (PNG)
-                </label>
-                {/* Optional badge */}
-                <span className="text-[10px] font-semibold px-2 py-0.5 bg-slate-100 text-slate-400 rounded-full">
-                  Optional
-                </span>
+                <label className="block text-[13px] font-semibold text-slate-600">Mask Image (PNG)</label>
+                <span className="text-[10px] font-semibold px-2 py-0.5 bg-slate-100 text-slate-400 rounded-full">Optional</span>
               </div>
               <div className="relative w-full h-40 bg-white border-2 border-dashed border-slate-200 hover:border-[#0b9e7a] rounded-xl flex items-center justify-center overflow-hidden transition-all group cursor-pointer shadow-sm">
-                {/* ↓ No `required` attribute — submit always proceeds without it */}
                 <input
                   type="file" name="maskImage" accept="image/png"
                   onChange={(e) => handleImageChange(e, setMaskPreview)}
