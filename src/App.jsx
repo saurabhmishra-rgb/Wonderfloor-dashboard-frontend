@@ -1,31 +1,50 @@
-import { Routes, Route, Navigate } from 'react-router-dom';
+// App.jsx
+import { Routes, Route, Navigate, Outlet } from 'react-router-dom';
 import Overview from './admin/pages/Overview';
 import LoginPage from './admin/pages/LoginPage';
 import RoomManager from './admin/pages/RoomManager';
 import ProductManager from './admin/pages/ProductManager';
 import AdminSidebar from './admin/components/AdminSidebar';
-
-// Ensure these point to their correct respective files
 import RoomDetail from './admin/pages/RoomDetail'; 
-// import ProductDetail from './admin/pages/ProductDetail'; // Make sure you have a separate file for products later
+import Settings from './admin/pages/Settings';
+// Import the SearchProvider we created earlier
+// (Adjust this relative import path depending on where you saved SearchContext.jsx)
+import { SearchProvider } from './admin/components/SearchContext';
+
+/**
+ * A lightweight layout route that wraps sub-routes in the global search context.
+ * The <Outlet /> component renders whichever child route matches the URL.
+ */
+function AdminSearchLayout() {
+  return (
+    <SearchProvider>
+      <Outlet />
+    </SearchProvider>
+  );
+}
 
 export default function App() {
   return (
     <Routes>
-      {/* Redirect root → /admin */}
+      {/* Public / Autonomous Routes */}
       <Route path="/" element={<Navigate to="/admin" replace />} />
-      <Route path="/admin" element={<Overview />} />
       <Route path="/admin/login" element={<LoginPage />} />
       
-      {/* Rooms Routing */}
-      <Route path="/admin/rooms" element={<RoomManager />} />
-      <Route path="/admin/rooms/:id" element={<RoomDetail />} /> {/* Added missing route */}
+      {/* Shared Context Dashboard Routes */}
+      <Route element={<AdminSearchLayout />}>
+        <Route path="/admin" element={<Overview />} />
+        
+        {/* Rooms Management */}
+        <Route path="/admin/rooms" element={<RoomManager />} />
+        <Route path="/admin/rooms/:id" element={<RoomDetail />} />
 
-      {/* Products Routing */}
-      <Route path="/admin/products" element={<ProductManager />} />
-      {/* <Route path="/admin/products/:id" element={<ProductDetail />} /> */}
-      
-      <Route path="/admin/sidebar" element={<AdminSidebar />} />
+        {/* Products Management */}
+        <Route path="/admin/products" element={<ProductManager />} />
+        {/* <Route path="/admin/products/:id" element={<ProductDetail />} /> */}
+        
+        <Route path="/admin/sidebar" element={<AdminSidebar />} />
+        <Route path="/admin/settings" element={<Settings />} /> 
+      </Route>
     </Routes>
   );
 }
