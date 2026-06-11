@@ -1,9 +1,28 @@
-// ProductDetailModal.jsx
 import { useState, useEffect } from 'react';
 
 const BASE_URL = import.meta.env.VITE_NODE_BACKEND_URL || 'https://wonderfloor-dashboard.vercel.app';
 
-/* ─── shared label + input primitives ────────────────────────────── */
+// ─── Initial data constants ───────────────────────────────────────────────────
+const INITIAL_NAV_CATEGORIES  = ['Flooring Products', 'Luxury Vinyl Tile'];
+const INITIAL_COLLECTIONS     = [
+  'Braavo', 'Krayons', 'Durofloor', 'Siggma', 'Orbit', 'Stoneland Monza',
+  'Meteor', 'Aventus', 'Timberworld 1.5mm', 'Timberland Exotica 2mm',
+  'Timberland Maestro 3mm', 'Timberland Widex', 'Timberland Herringbone',
+  'Grandeure Supreme',
+];
+const INITIAL_SHADES          = ['Light', 'Medium', 'Dark'];
+const INITIAL_COLOR_FAMILIES  = [
+  'Grey', 'Beige', 'Brown', 'Black', 'White',
+  'Blue', 'Green', 'Red', 'Orange', 'Yellow', 'Purple', 'Pink',
+];
+
+// ─── Persistent Memory (Lives outside the modal lifecycle) ────────────────────
+let persistentNavCategories = [...INITIAL_NAV_CATEGORIES];
+let persistentCollections   = [...INITIAL_COLLECTIONS];
+let persistentColorFamilies = [...INITIAL_COLOR_FAMILIES];
+let persistentShadeOptions  = [...INITIAL_SHADES];
+
+/* ─── shared label primitive ─────────────────────────────────────── */
 const Label = ({ children }) => (
   <p className="text-[10px] font-bold uppercase tracking-wider text-gray-400 mb-1">{children}</p>
 );
@@ -13,6 +32,7 @@ const inputCls =
   'focus:outline-none focus:border-[#0b9e7a] focus:ring-2 focus:ring-[#0b9e7a]/10 ' +
   'placeholder-gray-300 transition-all duration-150';
 
+/* ─── helpers ─────────────────────────────────────────────────────── */
 /* ─── helpers ─────────────────────────────────────────────────────── */
 function toForm(p) {
   return {
@@ -26,17 +46,143 @@ function toForm(p) {
     description:       p.description       ?? '',
     userIndustry:      p.userIndustry      ?? [],
     img:               p.img               ?? '',
+    // NEW: Safely convert tags array to a comma-separated string for editing
+    tags:              Array.isArray(p.tags) ? p.tags.join(', ') : (p.tags || ''),
   };
 }
 
+// ─── Custom Interactive Dropdown Component ────────────────────────────────────
+function ToggleSelectField({
+  label,
+  value,
+  onChange,
+  options,
+  onAddOption,
+  onRemoveOption,
+  selectPlaceholder = 'Select…',
+  createPlaceholder,
+}) {
+  const [isCustom,    setIsCustom]    = useState(false);
+  const [customValue, setCustomValue] = useState('');
+  const [isOpen,      setIsOpen]      = useState(false);
+
+  const handleToggle = () => {
+    setIsCustom((prev) => !prev);
+    setIsOpen(false);
+  };
+
+  const handleSelect = (val) => {
+    onChange(val);
+    setIsOpen(false);
+  };
+
+  const handleAddCustomInline = () => {
+    const val = customValue.trim();
+    if (val) {
+      if (!options.includes(val)) onAddOption(val);
+      onChange(val);
+      setIsCustom(false);
+      setCustomValue('');
+    }
+  };
+
+  return (
+    <div>
+      <div className="flex justify-between items-center mb-1.5">
+        <Label>{label}</Label>
+        <button
+          type="button"
+          onClick={handleToggle}
+          className="text-xs text-[#0b9e7a] hover:text-[#098264] hover:underline font-semibold cursor-pointer transition-colors"
+        >
+          {isCustom ? 'Select Existing' : '+ Create New'}
+        </button>
+      </div>
+
+      {isCustom ? (
+        <div className="flex gap-2">
+          <input
+            type="text"
+            placeholder={createPlaceholder || `Enter new ${label.toLowerCase()}…`}
+            value={customValue}
+            onChange={(e) => setCustomValue(e.target.value)}
+            className={inputCls}
+          />
+          <button
+            type="button"
+            onClick={handleAddCustomInline}
+            className="px-3 bg-gray-100 hover:bg-[#0b9e7a] text-gray-600 hover:text-white rounded-lg text-xs font-semibold transition-all cursor-pointer"
+          >
+            Add
+          </button>
+        </div>
+      ) : (
+        <div className="relative">
+          <div
+            onClick={() => setIsOpen(!isOpen)}
+            className="w-full bg-white border border-gray-200 rounded-lg px-3 py-2 text-gray-800 text-[13px] border-gray-200 focus-within:border-[#0b9e7a] transition-all flex justify-between items-center cursor-pointer select-none"
+          >
+            <span className={value ? 'text-gray-800' : 'text-gray-300'}>
+              {value || selectPlaceholder}
+            </span>
+            <div className="text-gray-400">
+              <svg width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24" className={`transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`}>
+                <path d="M19 9l-7 7-7-7" />
+              </svg>
+            </div>
+          </div>
+
+          {isOpen && (
+            <>
+              <div className="fixed inset-0 z-20" onClick={() => setIsOpen(false)}></div>
+              <ul className="absolute z-30 w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg max-h-48 overflow-y-auto py-1">
+                <li
+                  onClick={() => handleSelect('')}
+                  className="px-3 py-1.5 text-sm text-gray-300 hover:bg-gray-50 cursor-pointer"
+                >
+                  {selectPlaceholder}
+                </li>
+                {options.map((opt) => (
+                  <li
+                    key={opt}
+                    className="group px-3 py-1.5 text-sm text-gray-800 hover:bg-gray-50 flex justify-between items-center cursor-pointer"
+                    onClick={() => handleSelect(opt)}
+                  >
+                    <span className="truncate flex-1">{opt}</span>
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onRemoveOption(opt);
+                        if (value === opt) onChange('');
+                      }}
+                      className="text-gray-400 hover:text-red-500 p-0.5 rounded hover:bg-gray-200/60 opacity-0 group-hover:opacity-100 transition-all ml-2"
+                      title={`Remove ${opt}`}
+                    >
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <line x1="18" y1="6" x2="6" y2="18" />
+                        <line x1="6"  y1="6" x2="18" y2="18" />
+                      </svg>
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            </>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
 /* ═══════════════════════════════════════════════════════════════════
-   MAIN COMPONENT
+    MAIN PRODUCT DETAIL MODAL COMPONENT
 ═══════════════════════════════════════════════════════════════════ */
 export default function ProductDetailModal({
   productId,
-  initialMode = 'view',   // 'view' | 'edit'
+  initialMode = 'view',
   onClose,
-  onSuccess,              // called after a successful save (e.g. refetch list)
+  onSuccess,
 }) {
   const [product,   setProduct]   = useState(null);
   const [loading,   setLoading]   = useState(true);
@@ -46,9 +192,14 @@ export default function ProductDetailModal({
   const [saveError, setSaveError] = useState('');
   const [tagInput,  setTagInput]  = useState('');
 
-  // New Image Handling States
+  // Dropdown Tracked States
+  const [navCategories, setNavCategories] = useState(persistentNavCategories);
+  const [collections,   setCollections]   = useState(persistentCollections);
+  const [colorFamilies, setColorFamilies] = useState(persistentColorFamilies);
+  const [shadeOptions,  setShadeOptions]  = useState(persistentShadeOptions);
+
   const [selectedFile, setSelectedFile] = useState(null);
-  const [previewUrl, setPreviewUrl]     = useState('');
+  const [previewUrl,   setPreviewUrl]   = useState('');
 
   /* lock body scroll */
   useEffect(() => {
@@ -73,27 +224,35 @@ export default function ProductDetailModal({
       .finally(() => setLoading(false));
   }, [productId]);
 
-  /* cleanup helper */
   function cleanupImageStates() {
     if (previewUrl) URL.revokeObjectURL(previewUrl);
     setSelectedFile(null);
     setPreviewUrl('');
   }
 
-  /* field setter */
   const set = (key, val) => setForm(f => ({ ...f, [key]: val }));
 
-  /* handle local file select */
+  // ✅ FIX 1: Client-side file size guard — rejects files over 10 MB instantly,
+  //   before any network request is made, and surfaces a friendly inline error.
   function handleFileChange(e) {
     const file = e.target.files[0];
-    if (file) {
-      setSelectedFile(file);
-      // Generate a client-side blob URL for instant UI thumbnail refresh
-      setPreviewUrl(URL.createObjectURL(file));
+    if (!file) return;
+
+    const MAX_MB = 10;
+    if (file.size > MAX_MB * 1024 * 1024) {
+      setSaveError(
+        `Image is too large (${(file.size / 1024 / 1024).toFixed(1)} MB). ` +
+        `Please use a file under ${MAX_MB} MB.`
+      );
+      e.target.value = ''; // reset the native file input so the user can re-pick
+      return;
     }
+
+    setSaveError(''); // clear any previous error
+    setSelectedFile(file);
+    setPreviewUrl(URL.createObjectURL(file));
   }
 
-  /* tag helpers */
   function commitTag(e) {
     if ((e.key === 'Enter' || e.key === ',') && tagInput.trim()) {
       e.preventDefault();
@@ -105,7 +264,6 @@ export default function ProductDetailModal({
   }
   const removeTag = tag => set('userIndustry', form.userIndustry.filter(t => t !== tag));
 
-  /* cancel edit */
   function handleCancel() {
     if (product) setForm(toForm(product));
     cleanupImageStates();
@@ -113,35 +271,67 @@ export default function ProductDetailModal({
     setMode('view');
   }
 
-  /* save changes via FormData payload submission */
-  async function handleSave() {
+async function handleSave() {
     setSaving(true);
     setSaveError('');
     try {
       const formData = new FormData();
 
-      // Append textual configuration properties
       Object.keys(form).forEach(key => {
         if (key === 'userIndustry') {
           formData.append(key, JSON.stringify(form[key]));
+        } else if (key === 'tags') {
+          // NEW: Convert comma-separated string back to a clean array
+          const tagsArray = (form[key] || '')
+            .split(',')
+            .map(t => t.trim())
+            .filter(Boolean); // removes empty strings
+            
+          // Stringify so the backend can parse it as an array
+          formData.append(key, JSON.stringify(tagsArray));
         } else {
           formData.append(key, form[key]);
         }
       });
 
-      // Append binary file parameter if a user selected one
       if (selectedFile) {
         formData.append('tileImage', selectedFile);
       }
 
       const res = await fetch(`${BASE_URL}/products/${productId}`, {
         method: 'PATCH',
-        body: formData, // Crucial: Do not supply 'Content-Type' header here. Browser automatically calculates the Multipart form boundaries
+        body: formData,
       });
-      
-      if (!res.ok) throw new Error(`Update failed with status: ${res.status}`);
+
+      // ✅ FIX 2: Parse the server's error body before throwing so the real
+      //   backend message (e.g. "File too large") reaches the UI error banner
+      //   instead of a generic "Update failed with status: 500".
+      if (!res.ok) {
+        const errorBody = await res.json().catch(() => null);
+        const message   = errorBody?.error || errorBody?.message || `Save failed (status ${res.status})`;
+        throw new Error(message);
+      }
+
       const updated = await res.json();
-      
+
+      // Auto-save any brand new customized textual selections directly to global lists
+      if (form.navCategory && !persistentNavCategories.includes(form.navCategory)) {
+        persistentNavCategories = [...persistentNavCategories, form.navCategory];
+        setNavCategories(persistentNavCategories);
+      }
+      if (form.accordionCategory && !persistentCollections.includes(form.accordionCategory)) {
+        persistentCollections = [...persistentCollections, form.accordionCategory];
+        setCollections(persistentCollections);
+      }
+      if (form.colour && !persistentColorFamilies.includes(form.colour)) {
+        persistentColorFamilies = [...persistentColorFamilies, form.colour];
+        setColorFamilies(persistentColorFamilies);
+      }
+      if (form.shade && !persistentShadeOptions.includes(form.shade)) {
+        persistentShadeOptions = [...persistentShadeOptions, form.shade];
+        setShadeOptions(persistentShadeOptions);
+      }
+
       setProduct(updated);
       setForm(toForm(updated));
       cleanupImageStates();
@@ -149,7 +339,8 @@ export default function ProductDetailModal({
       onSuccess?.();
     } catch (err) {
       console.error('Save error:', err);
-      setSaveError('Save failed — please check your connection and try again.');
+      // Show the real server message if available, otherwise a fallback
+      setSaveError(err.message || 'Save failed — please check your connection and try again.');
     } finally {
       setSaving(false);
     }
@@ -157,23 +348,19 @@ export default function ProductDetailModal({
 
   if (!productId) return null;
 
-  /* fallback configuration pipeline checks */
-  const displayImg = mode === 'edit' 
-    ? (previewUrl || form.img || 'https://placehold.co/300x300?text=No+Image') 
+  const displayImg = mode === 'edit'
+    ? (previewUrl || form.img || 'https://placehold.co/300x300?text=No+Image')
     : (product?.img || 'https://placehold.co/300x300?text=No+Image');
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
       <div className="absolute inset-0" onClick={onClose} />
 
-      <div className="relative w-full max-w-4xl bg-white rounded-2xl shadow-2xl overflow-hidden
-                      flex flex-col md:flex-row max-h-[90vh] z-10 animate-fade-in">
+      <div className="relative w-full max-w-4xl bg-white rounded-2xl shadow-2xl overflow-hidden flex flex-col md:flex-row max-h-[90vh] z-10 animate-fade-in">
 
         <button
           onClick={onClose}
-          className="absolute top-4 right-4 z-20 p-2 text-gray-400 hover:text-gray-700
-                     bg-white/90 hover:bg-white rounded-full shadow-sm border border-gray-100
-                     transition-all cursor-pointer"
+          className="absolute top-4 right-4 z-20 p-2 text-gray-400 hover:text-gray-700 bg-white/90 hover:bg-white rounded-full shadow-sm border border-gray-100 transition-all cursor-pointer"
         >
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
             <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
@@ -182,8 +369,7 @@ export default function ProductDetailModal({
 
         {loading ? (
           <div className="w-full flex flex-col items-center justify-center py-32 text-sm text-[#aaaaaa]">
-            <svg className="animate-spin mb-3 text-[#0b9e7a]" width="28" height="28"
-                 viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <svg className="animate-spin mb-3 text-[#0b9e7a]" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
               <path d="M21 12a9 9 0 1 1-6.219-8.56"/>
             </svg>
             Loading product…
@@ -199,9 +385,7 @@ export default function ProductDetailModal({
         ) : (
           <>
             {/* ── LEFT: image panel ── */}
-            <div className="w-full md:w-[42%] bg-[#fafafa] flex items-center justify-center p-8
-                            border-b md:border-b-0 md:border-r border-gray-100 relative shrink-0">
-
+            <div className="w-full md:w-[42%] bg-[#fafafa] flex items-center justify-center p-8 border-b md:border-b-0 md:border-r border-gray-100 relative shrink-0">
               <div className="aspect-square w-full max-w-[300px] rounded-xl border border-gray-200 bg-white overflow-hidden shadow-sm">
                 <img
                   src={displayImg}
@@ -211,10 +395,7 @@ export default function ProductDetailModal({
                 />
               </div>
 
-              <span
-                className={`absolute top-4 left-4 text-[10px] font-bold uppercase tracking-widest px-2.5 py-1 rounded-full border transition-all duration-200
-                            ${mode === 'edit' ? 'bg-amber-50 text-amber-600 border-amber-200' : 'bg-[#edf9f5] text-[#0b9e7a] border-[#0b9e7a]/20'}`}
-              >
+              <span className={`absolute top-4 left-4 text-[10px] font-bold uppercase tracking-widest px-2.5 py-1 rounded-full border transition-all duration-200 ${mode === 'edit' ? 'bg-amber-50 text-amber-600 border-amber-200' : 'bg-[#edf9f5] text-[#0b9e7a] border-[#0b9e7a]/20'}`}>
                 {mode === 'edit' ? '✏ Editing' : '● Live View'}
               </span>
 
@@ -225,7 +406,6 @@ export default function ProductDetailModal({
 
             {/* ── RIGHT: detail / edit panel ── */}
             <div className="flex-1 flex flex-col overflow-hidden min-w-0">
-
               <div className="px-8 pt-7 pb-4 border-b border-gray-100 shrink-0">
                 <div className="flex flex-wrap gap-1.5 mb-2">
                   <span className="px-2.5 py-0.5 bg-[#edf9f5] text-[#0b9e7a] text-xs font-semibold rounded-full">
@@ -244,17 +424,22 @@ export default function ProductDetailModal({
               </div>
 
               <div className="flex-1 overflow-y-auto px-8 py-6">
-                {mode === 'view'
-                  ? <ViewPanel product={product} />
-                  : <EditPanel
-                      form={form} set={set}
-                      tagInput={tagInput} setTagInput={setTagInput}
-                      commitTag={commitTag} removeTag={removeTag}
-                      saveError={saveError}
-                      handleFileChange={handleFileChange}
-                      selectedFile={selectedFile}
-                    />
-                }
+                {mode === 'view' ? (
+                  <ViewPanel product={product} />
+                ) : (
+                  <EditPanel
+                    form={form} set={set}
+                    tagInput={tagInput} setTagInput={setTagInput}
+                    commitTag={commitTag} removeTag={removeTag}
+                    saveError={saveError}
+                    handleFileChange={handleFileChange}
+                    selectedFile={selectedFile}
+                    navCategories={navCategories} setNavCategories={setNavCategories}
+                    collections={collections} setCollections={setCollections}
+                    colorFamilies={colorFamilies} setColorFamilies={setColorFamilies}
+                    shadeOptions={shadeOptions} setShadeOptions={setShadeOptions}
+                  />
+                )}
               </div>
 
               <div className="px-8 pb-7 pt-4 border-t border-gray-100 shrink-0 flex gap-3">
@@ -297,7 +482,6 @@ export default function ProductDetailModal({
                   </>
                 )}
               </div>
-
             </div>
           </>
         )}
@@ -307,7 +491,7 @@ export default function ProductDetailModal({
 }
 
 /* ═══════════════════════════════════════════════════════════════════
-   VIEW PANEL
+    VIEW PANEL
 ═══════════════════════════════════════════════════════════════════ */
 function ViewPanel({ product }) {
   const specCards = [
@@ -350,14 +534,34 @@ function ViewPanel({ product }) {
           )}
         </div>
       </div>
+
+      {/* NEW: Searchable Tags Display */}
+      <div>
+        <Label>Searchable Tags</Label>
+        <div className="flex flex-wrap gap-1.5">
+          {product.tags && product.tags.length > 0 ? (
+            (Array.isArray(product.tags) ? product.tags : product.tags.split(',')).map((tag, i) => (
+              <span key={i} className="px-2.5 py-1 bg-[#edf9f5] border border-[#0b9e7a]/20 text-[#0b9e7a] text-[11px] font-medium rounded-md">
+                {tag.trim()}
+              </span>
+            ))
+          ) : (
+            <span className="text-xs text-gray-400 italic">No search tags added</span>
+          )}
+        </div>
+      </div>
+      
     </div>
   );
 }
 
 /* ═══════════════════════════════════════════════════════════════════
-   EDIT PANEL
+    EDIT PANEL
 ═══════════════════════════════════════════════════════════════════ */
-function EditPanel({ form, set, tagInput, setTagInput, commitTag, removeTag, saveError, handleFileChange, selectedFile }) {
+function EditPanel({
+  form, set, tagInput, setTagInput, commitTag, removeTag, saveError, handleFileChange, selectedFile,
+  navCategories, setNavCategories, collections, setCollections, colorFamilies, setColorFamilies, shadeOptions, setShadeOptions
+}) {
   return (
     <div className="space-y-4">
       <div>
@@ -376,26 +580,95 @@ function EditPanel({ form, set, tagInput, setTagInput, commitTag, removeTag, sav
         </div>
       </div>
 
+      {/* Upgraded fields to interactive modular layout dropdown menus */}
       <div className="grid grid-cols-2 gap-3">
-        <div>
-          <Label>Category</Label>
-          <input value={form.navCategory} onChange={e => set('navCategory', e.target.value)} placeholder="e.g. Flooring Products" className={inputCls} />
-        </div>
-        <div>
-          <Label>Collection</Label>
-          <input value={form.accordionCategory} onChange={e => set('accordionCategory', e.target.value)} placeholder="e.g. Marble Series" className={inputCls} />
-        </div>
+        <ToggleSelectField
+          label="Category"
+          value={form.navCategory}
+          onChange={val => set('navCategory', val)}
+          options={navCategories}
+          onAddOption={(val) => {
+            setNavCategories(prev => {
+              const updated = [...prev, val];
+              persistentNavCategories = updated;
+              return updated;
+            });
+          }}
+          onRemoveOption={(val) => {
+            setNavCategories(prev => {
+              const updated = prev.filter(i => i !== val);
+              persistentNavCategories = updated;
+              return updated;
+            });
+          }}
+          selectPlaceholder="Select category..."
+        />
+        <ToggleSelectField
+          label="Collection"
+          value={form.accordionCategory}
+          onChange={val => set('accordionCategory', val)}
+          options={collections}
+          onAddOption={(val) => {
+            setCollections(prev => {
+              const updated = [...prev, val];
+              persistentCollections = updated;
+              return updated;
+            });
+          }}
+          onRemoveOption={(val) => {
+            setCollections(prev => {
+              const updated = prev.filter(i => i !== val);
+              persistentCollections = updated;
+              return updated;
+            });
+          }}
+          selectPlaceholder="Select collection..."
+        />
       </div>
 
       <div className="grid grid-cols-2 gap-3">
-        <div>
-          <Label>Colour Variant</Label>
-          <input value={form.colour} onChange={e => set('colour', e.target.value)} placeholder="e.g. White/Grey" className={inputCls} />
-        </div>
-        <div>
-          <Label>Shade Value</Label>
-          <input value={form.shade} onChange={e => set('shade', e.target.value)} placeholder="e.g. Light" className={inputCls} />
-        </div>
+        <ToggleSelectField
+          label="Colour Variant"
+          value={form.colour}
+          onChange={val => set('colour', val)}
+          options={colorFamilies}
+          onAddOption={(val) => {
+            setColorFamilies(prev => {
+              const updated = [...prev, val];
+              persistentColorFamilies = updated;
+              return updated;
+            });
+          }}
+          onRemoveOption={(val) => {
+            setColorFamilies(prev => {
+              const updated = prev.filter(i => i !== val);
+              persistentColorFamilies = updated;
+              return updated;
+            });
+          }}
+          selectPlaceholder="Select color..."
+        />
+        <ToggleSelectField
+          label="Shade Value"
+          value={form.shade}
+          onChange={val => set('shade', val)}
+          options={shadeOptions}
+          onAddOption={(val) => {
+            setShadeOptions(prev => {
+              const updated = [...prev, val];
+              persistentShadeOptions = updated;
+              return updated;
+            });
+          }}
+          onRemoveOption={(val) => {
+            setShadeOptions(prev => {
+              const updated = prev.filter(i => i !== val);
+              persistentShadeOptions = updated;
+              return updated;
+            });
+          }}
+          selectPlaceholder="Select shade..."
+        />
       </div>
 
       <div>
@@ -403,12 +676,11 @@ function EditPanel({ form, set, tagInput, setTagInput, commitTag, removeTag, sav
         <textarea value={form.description} onChange={e => set('description', e.target.value)} rows={3} placeholder="Short product description…" className={`${inputCls} resize-none`} />
       </div>
 
-      {/* REPLACED: Text Input URL field swapped for clean Custom Upload Field Container */}
       <div>
         <Label>Product Image Asset</Label>
         <div className="relative flex flex-col items-center justify-center border-2 border-dashed border-gray-200 hover:border-[#0b9e7a] rounded-xl p-4 bg-white transition-colors duration-150">
-          <input 
-            type="file" 
+          <input
+            type="file"
             accept="image/*"
             id="modalTileImageFile"
             onChange={handleFileChange}
@@ -446,6 +718,26 @@ function EditPanel({ form, set, tagInput, setTagInput, commitTag, removeTag, sav
         </div>
         <p className="text-[10px] text-gray-400 mt-1 pl-0.5">Press <kbd className="font-mono bg-gray-100 px-1 rounded text-[9px]">Enter</kbd> or <kbd className="font-mono bg-gray-100 px-1 rounded text-[9px]">,</kbd> to add · click × to remove</p>
       </div>
+      {/* NEW: Searchable Tags Input */}
+      <div>
+        <Label>Searchable Tags (Comma Separated)</Label>
+        <input 
+          value={form.tags} 
+          onChange={e => set('tags', e.target.value)} 
+          placeholder="e.g., mint, dark green, eco-friendly" 
+          className={inputCls} 
+        />
+        <p className="text-[10px] text-gray-400 mt-1 pl-0.5">Add alternate names or keywords to help users find this tile in search.</p>
+      </div>
+
+      {saveError && (
+        <div className="flex items-start gap-2.5 text-xs text-red-600 bg-red-50 border border-red-100 p-3 rounded-xl">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="shrink-0 mt-0.5">
+            <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
+          </svg>
+          {saveError}
+        </div>
+      )}
 
       {saveError && (
         <div className="flex items-start gap-2.5 text-xs text-red-600 bg-red-50 border border-red-100 p-3 rounded-xl">
