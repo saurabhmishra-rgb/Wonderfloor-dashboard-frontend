@@ -1,3 +1,4 @@
+// Overview.jsx
 import { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import UploadRoomModal from '../components/UploadRoomModal';
@@ -31,7 +32,7 @@ export default function Overview() {
   const [isTileModalOpen, setIsTileModalOpen] = useState(false);
   const [isAdminSidebar, setIsAdminSidebar] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const [viewMode, setViewMode] = useState('list'); // 'list' or 'grid'
+  const [viewMode, setViewMode] = useState('list');
 
   const [loading, setLoading] = useState(true);
   const [dashboardData, setDashboardData] = useState({
@@ -46,8 +47,7 @@ export default function Overview() {
   async function fetchDashboardStats() {
     setLoading(true);
     try {
-      // const response = await fetch('https://wonderfloor-dashboard.vercel.app/dashboard-stats');
-       const response = await fetch('https://wonderfloor-dashboard.vercel.app/dashboard-stats');
+      const response = await fetch('https://wonderfloor-dashboard.vercel.app/dashboard-stats');
       if (response.ok) {
         const data = await response.json();
         setDashboardData(data);
@@ -163,23 +163,39 @@ export default function Overview() {
         {/* Scrollable content */}
         <div className="flex-1 overflow-auto p-4 md:p-6 md:px-7">
 
-          {/* Stat cards - Updated to 3 columns max */}
+          {/* ── METRIC CARDS SKELETON INTEGRATION ── */}
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3.5 mb-7">
+            
+            {/* Total Rooms Card */}
             <div className="bg-white border border-[#e8e8e8] rounded-xl px-5 py-[18px] shadow-sm">
               <div className="text-xs text-[#888888] mb-2 leading-tight">Total rooms</div>
-              <div className="text-[28px] font-semibold text-[#111111] leading-none mb-1.5">{dashboardData.stats.totalRooms}</div>
+              {loading ? (
+                <div className="h-7 w-16 bg-gray-200 rounded animate-pulse my-0.5" />
+              ) : (
+                <div className="text-[28px] font-semibold text-[#111111] leading-none mb-1.5">{dashboardData.stats.totalRooms}</div>
+              )}
               <div className="text-[11px] text-[#aaaaaa]">Saved in database</div>
             </div>
 
+            {/* Tile Products Card */}
             <div className="bg-white border border-[#e8e8e8] rounded-xl px-5 py-[18px] shadow-sm">
               <div className="text-xs text-[#888888] mb-2 leading-tight">Tile products</div>
-              <div className="text-[28px] font-semibold text-[#111111] leading-none mb-1.5">{dashboardData.stats.totalProducts}</div>
+              {loading ? (
+                <div className="h-7 w-16 bg-gray-200 rounded animate-pulse my-0.5" />
+              ) : (
+                <div className="text-[28px] font-semibold text-[#111111] leading-none mb-1.5">{dashboardData.stats.totalProducts}</div>
+              )}
               <div className="text-[11px] text-[#aaaaaa]">Active collections</div>
             </div>
 
+            {/* Cloudinary Images Card */}
             <div className="bg-white border border-[#e8e8e8] rounded-xl px-5 py-[18px] shadow-sm sm:col-span-2 md:col-span-1">
               <div className="text-xs text-[#888888] mb-2 leading-tight">Cloudinary Images</div>
-              <div className="text-[28px] font-semibold text-[#111111] leading-none mb-1.5">{dashboardData.stats.totalRecords}</div>
+              {loading ? (
+                <div className="h-7 w-16 bg-gray-200 rounded animate-pulse my-0.5" />
+              ) : (
+                <div className="text-[28px] font-semibold text-[#111111] leading-none mb-1.5">{dashboardData.stats.totalRecords}</div>
+              )}
               <div className="text-[11px] text-[#aaaaaa]">Synced with database</div>
             </div>
           </div>
@@ -191,7 +207,7 @@ export default function Overview() {
             <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center px-5 py-4 border-b border-[#f0f0f0] gap-3">
               <div className="flex items-center gap-3">
                 <span className="text-sm font-medium text-[#111111]">Recent uploads</span>
-                {loading && <span className="text-[10px] text-[#aaaaaa] animate-pulse">Syncing...</span>}
+                {loading && <span className="text-[10px] text-[#0b9e7a] font-medium animate-pulse">Syncing matrix data...</span>}
               </div>
               
               <div className="flex bg-[#f4f4f5] p-1 rounded-lg w-fit">
@@ -216,7 +232,7 @@ export default function Overview() {
               <div className="p-8 text-center text-[#aaaaaa] text-sm">No recent uploads found.</div>
             )}
 
-            {/* --- LIST VIEW --- */}
+            {/* ─── LIST VIEW CONTENT ENGINE ─── */}
             {viewMode === 'list' && (
               <div className="w-full overflow-x-auto">
                 <div className="min-w-[700px]">
@@ -226,72 +242,109 @@ export default function Overview() {
                     ))}
                   </div>
 
-                  {dashboardData.recentUploads.map((row, idx) => {
-                    const isLast = idx === dashboardData.recentUploads.length - 1;
-                    const typeColor = row.type === 'Room' ? 'bg-[#e8f1ff] text-[#3b82f6]' : 'bg-[#f3eeff] text-[#8b5cf6]';
-
-                    return (
-                      <div
-                        key={row.id}
-                        className={`grid grid-cols-[2fr_2fr_80px_160px_100px] px-5 py-3 items-center transition-colors duration-100 hover:bg-[#fafafa] cursor-default ${!isLast ? 'border-b border-[#f0f0f0]' : ''}`}
+                  {loading ? (
+                    /* Elegant Table Row Pulse Skeletons */
+                    Array.from({ length: 4 }).map((_, idx) => (
+                      <div 
+                        key={idx} 
+                        className="grid grid-cols-[2fr_2fr_80px_160px_100px] px-5 py-3.5 items-center border-b border-[#f0f0f0] animate-pulse"
                       >
-                        <div className="flex items-center gap-2.5 overflow-hidden">
-                          <div className="w-9 h-9 rounded-md shrink-0 border border-[#e8e8e8] overflow-hidden bg-[#f5f5f5]">
-                            <img src={row.thumb} alt={row.name} className="w-full h-full object-cover" />
-                          </div>
-                          <span className="text-[13px] text-[#222222] font-medium truncate pr-2">{row.name}</span>
+                        <div className="flex items-center gap-2.5">
+                          <div className="w-9 h-9 rounded-md bg-gray-200 shrink-0" />
+                          <div className="h-3.5 bg-gray-200 rounded w-28" />
                         </div>
-
-                        <div className="text-xs text-[#aaaaaa] font-mono truncate pr-4" title={row.file}>{row.file}</div>
-                        <div className="text-[13px] text-[#666666]">{row.type}</div>
-
-                        <div>
-                          <span className={`inline-block px-2.5 py-1 rounded-full text-[11px] font-medium truncate max-w-[140px] ${typeColor}`}>
-                            {row.category}
-                          </span>
-                        </div>
-
-                        <div>
-                          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-medium bg-[#e6f9f0] text-[#16a34a]">
-                            <span className="w-1.5 h-1.5 rounded-full shrink-0 bg-[#16a34a]" /> Live
-                          </span>
-                        </div>
+                        <div className="h-3 bg-gray-100 rounded w-36" />
+                        <div className="h-3.5 bg-gray-200 rounded w-10" />
+                        <div className="h-5 bg-gray-200 rounded-full w-24" />
+                        <div className="h-5 bg-gray-200 rounded-full w-16" />
                       </div>
-                    );
-                  })}
+                    ))
+                  ) : (
+                    dashboardData.recentUploads.map((row, idx) => {
+                      const isLast = idx === dashboardData.recentUploads.length - 1;
+                      const typeColor = row.type === 'Room' ? 'bg-[#e8f1ff] text-[#3b82f6]' : 'bg-[#f3eeff] text-[#8b5cf6]';
+
+                      return (
+                        <div
+                          key={row.id}
+                          className={`grid grid-cols-[2fr_2fr_80px_160px_100px] px-5 py-3 items-center transition-colors duration-100 hover:bg-[#fafafa] cursor-default ${!isLast ? 'border-b border-[#f0f0f0]' : ''}`}
+                        >
+                          <div className="flex items-center gap-2.5 overflow-hidden">
+                            <div className="w-9 h-9 rounded-md shrink-0 border border-[#e8e8e8] overflow-hidden bg-[#f5f5f5]">
+                              <img src={row.thumb} alt={row.name} className="w-full h-full object-cover" />
+                            </div>
+                            <span className="text-[13px] text-[#222222] font-medium truncate pr-2">{row.name}</span>
+                          </div>
+
+                          <div className="skip-web-render text-xs text-[#aaaaaa] font-mono truncate pr-4" title={row.file}>{row.file}</div>
+                          <div className="text-[13px] text-[#666666]">{row.type}</div>
+
+                          <div>
+                            <span className={`inline-block px-2.5 py-1 rounded-full text-[11px] font-medium truncate max-w-[140px] ${typeColor}`}>
+                              {row.category}
+                            </span>
+                          </div>
+
+                          <div>
+                            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-medium bg-[#e6f9f0] text-[#16a34a]">
+                              <span className="w-1.5 h-1.5 rounded-full shrink-0 bg-[#16a34a]" /> Live
+                            </span>
+                          </div>
+                        </div>
+                      );
+                    })
+                  )}
                 </div>
               </div>
             )}
 
-            {/* --- GRID VIEW --- */}
+            {/* ─── GRID VIEW CONTENT ENGINE ─── */}
             {viewMode === 'grid' && (
               <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 p-5 bg-[#fafafa]">
-                {dashboardData.recentUploads.map((row) => {
-                  const typeColor = row.type === 'Room' ? 'bg-[#e8f1ff] text-[#3b82f6]' : 'bg-[#f3eeff] text-[#8b5cf6]';
-                  
-                  return (
-                    <div key={row.id} className="bg-white border border-[#e8e8e8] rounded-xl p-3 flex flex-col shadow-sm hover:shadow-md transition-shadow">
-                      <div className="w-full aspect-video rounded-lg border border-[#e8e8e8] overflow-hidden bg-[#f5f5f5] mb-3 relative">
-                        <img src={row.thumb} alt={row.name} className="w-full h-full object-cover" />
-                        <span className="absolute top-2 left-2 inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold bg-black/60 text-white backdrop-blur-sm">
-                           {row.type}
-                        </span>
-                      </div>
-                      
-                      <span className="text-[14px] text-[#111111] font-semibold truncate mb-1" title={row.name}>{row.name}</span>
-                      <span className="text-[11px] text-[#aaaaaa] font-mono truncate mb-3" title={row.file}>{row.file}</span>
-                      
+                {loading ? (
+                  /* Elegant Grid Shimmer Skeletons */
+                  Array.from({ length: 4 }).map((_, idx) => (
+                    <div 
+                      key={idx} 
+                      className="bg-white border border-[#e8e8e8] rounded-xl p-3 flex flex-col shadow-sm animate-pulse"
+                    >
+                      <div className="w-full aspect-video rounded-lg bg-gray-200 mb-3" />
+                      <div className="h-4 bg-gray-200 rounded w-2/3 mb-2" />
+                      <div className="h-3 bg-gray-100 rounded w-1/2 mb-4" />
                       <div className="mt-auto flex items-center justify-between pt-3 border-t border-[#f0f0f0]">
-                        <span className={`inline-block px-2 py-1 rounded-full text-[10px] font-medium truncate max-w-[100px] ${typeColor}`}>
-                          {row.category}
-                        </span>
-                        <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-[10px] font-medium bg-[#e6f9f0] text-[#16a34a]">
-                          <span className="w-1 h-1 rounded-full shrink-0 bg-[#16a34a]" /> Live
-                        </span>
+                        <div className="h-4 bg-gray-200 rounded-full w-16" />
+                        <div className="h-4 bg-gray-200 rounded-full w-12" />
                       </div>
                     </div>
-                  );
-                })}
+                  ))
+                ) : (
+                  dashboardData.recentUploads.map((row) => {
+                    const typeColor = row.type === 'Room' ? 'bg-[#e8f1ff] text-[#3b82f6]' : 'bg-[#f3eeff] text-[#8b5cf6]';
+                    
+                    return (
+                      <div key={row.id} className="bg-white border border-[#e8e8e8] rounded-xl p-3 flex flex-col shadow-sm hover:shadow-md transition-shadow">
+                        <div className="w-full aspect-video rounded-lg border border-[#e8e8e8] overflow-hidden bg-[#f5f5f5] mb-3 relative">
+                          <img src={row.thumb} alt={row.name} className="w-full h-full object-cover" />
+                          <span className="absolute top-2 left-2 inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold bg-black/60 text-white backdrop-blur-sm">
+                             {row.type}
+                          </span>
+                        </div>
+                        
+                        <span className="text-[14px] text-[#111111] font-semibold truncate mb-1" title={row.name}>{row.name}</span>
+                        <span className="text-[11px] text-[#aaaaaa] font-mono truncate mb-3" title={row.file}>{row.file}</span>
+                        
+                        <div className="mt-auto flex items-center justify-between pt-3 border-t border-[#f0f0f0]">
+                          <span className={`inline-block px-2 py-1 rounded-full text-[10px] font-medium truncate max-w-[100px] ${typeColor}`}>
+                            {row.category}
+                          </span>
+                          <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-[10px] font-medium bg-[#e6f9f0] text-[#16a34a]">
+                            <span className="w-1 h-1 rounded-full shrink-0 bg-[#16a34a]" /> Live
+                          </span>
+                        </div>
+                      </div>
+                    );
+                  })
+                )}
               </div>
             )}
 
