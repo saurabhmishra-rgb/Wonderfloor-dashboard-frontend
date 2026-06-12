@@ -2,7 +2,7 @@
 import { useState, useEffect } from 'react';
 import ToggleSelectField from './ToggleSelectField';
 
-const BASE_URL = import.meta.env.VITE_NODE_BACKEND_URL || 'http://localhost:8000';
+const BASE_URL = import.meta.env.VITE_NODE_BACKEND_URL || 'https://wonderfloor-dashboard.vercel.app;
 
 // ─── 1. Initial Constants ─────────────────────────────────────────────────────
 const INITIAL_NAV_CATEGORIES  = ['Flooring Products', 'Luxury Vinyl Tile'];
