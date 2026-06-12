@@ -20,12 +20,27 @@ const INITIAL_USER_INDUSTRIES = [
   'School Flooring', 'Sports Flooring', 'Hotel/ Hospitality Flooring',
 ];
 
+// ── NEW: Initial options for the 4 new fields ────────────────────────────────
+const INITIAL_THICKNESS_OPTIONS = [
+  '1.0mm', '1.5mm', '2.0mm', '2.5mm', '3.0mm', '3.5mm', '4.0mm', '5.0mm',
+];
+const INITIAL_STYLE_OPTIONS = [
+  'Homogeneous Flooring', 'Cushion Vinyl', 'Heterogeneous Flooring',
+  'SPC Flooring', 'WPC Flooring', 'Printed Vinyl',
+];
+const INITIAL_PATTERN_OPTIONS = [
+  'Non-Directional', 'Directional', 'Herringbone', 'Random', 'Linear',
+];
+
 // ─── Persistent Memory (Lives outside the modal unmount lifecycle) ────────────
-let persistentNavCategories = [...INITIAL_NAV_CATEGORIES];
-let persistentCollections = [...INITIAL_COLLECTIONS];
-let persistentColorFamilies = [...INITIAL_COLOR_FAMILIES];
-let persistentShadeOptions = [...INITIAL_SHADES];
-let persistentIndustries = [...INITIAL_USER_INDUSTRIES];
+let persistentNavCategories    = [...INITIAL_NAV_CATEGORIES];
+let persistentCollections      = [...INITIAL_COLLECTIONS];
+let persistentColorFamilies    = [...INITIAL_COLOR_FAMILIES];
+let persistentShadeOptions     = [...INITIAL_SHADES];
+let persistentIndustries       = [...INITIAL_USER_INDUSTRIES];
+let persistentThicknessOptions = [...INITIAL_THICKNESS_OPTIONS]; // NEW
+let persistentStyleOptions     = [...INITIAL_STYLE_OPTIONS];     // NEW
+let persistentPatternOptions   = [...INITIAL_PATTERN_OPTIONS];   // NEW
 
 // ─── Image Compression Utility ────────────────────────────────────────────────
 const compressImage = (file, { maxDimension = 1200, quality = 0.8 } = {}) =>
@@ -139,7 +154,7 @@ function ToggleSelectField({
 
           <div
             onClick={() => setIsOpen(!isOpen)}
-            className="w-full bg-white border border-slate-200 rounded-lg px-4 py-2.5 text-slate-800 text-sm border-slate-200 focus-within:border-[#0b9e7a] focus-within:ring-1 focus-within:ring-[#0b9e7a] transition-all flex justify-between items-center cursor-pointer select-none"
+            className="w-full bg-white border border-slate-200 rounded-lg px-4 py-2.5 text-slate-800 text-sm focus-within:border-[#0b9e7a] focus-within:ring-1 focus-within:ring-[#0b9e7a] transition-all flex justify-between items-center cursor-pointer select-none"
           >
             <span className={selectedValue ? 'text-slate-800' : 'text-slate-400'}>
               {selectedValue || selectPlaceholder}
@@ -206,14 +221,18 @@ export default function UploadTileModal({ onClose, onSuccess }) {
   const [tileFileMeta, setTileFileMeta] = useState(null);
 
   // ── Persistent Synchronized Component States ────────────────────────────────
-  const [navCategories, setNavCategories] = useState(persistentNavCategories);
-  const [collections, setCollections] = useState(persistentCollections);
-  const [colorFamilies, setColorFamilies] = useState(persistentColorFamilies);
-  const [shadeOptions, setShadeOptions] = useState(persistentShadeOptions);
-  const [industries, setIndustries] = useState(persistentIndustries);
+  const [navCategories, setNavCategories]       = useState(persistentNavCategories);
+  const [collections, setCollections]           = useState(persistentCollections);
+  const [colorFamilies, setColorFamilies]       = useState(persistentColorFamilies);
+  const [shadeOptions, setShadeOptions]         = useState(persistentShadeOptions);
+  const [industries, setIndustries]             = useState(persistentIndustries);
+  const [thicknessOptions, setThicknessOptions] = useState(persistentThicknessOptions); // NEW
+  const [styleOptions, setStyleOptions]         = useState(persistentStyleOptions);     // NEW
+  const [patternOptions, setPatternOptions]     = useState(persistentPatternOptions);   // NEW
+
   const [newIndustryInput, setNewIndustryInput] = useState('');
 
-  const formRef = useRef(null);
+  const formRef    = useRef(null);
   const rawFileRef = useRef(null);
 
   // ── Industry helpers ────────────────────────────────────────────────────────
@@ -226,7 +245,6 @@ export default function UploadTileModal({ onClose, onSuccess }) {
     e.preventDefault();
     const val = newIndustryInput.trim();
     if (!val) return;
-
     if (!industries.includes(val)) {
       setIndustries((prev) => {
         const updated = [...prev, val];
@@ -234,7 +252,6 @@ export default function UploadTileModal({ onClose, onSuccess }) {
         return updated;
       });
     }
-
     if (!selectedIndustries.includes(val)) {
       setSelectedIndustries((prev) => [...prev, val]);
     }
@@ -284,13 +301,13 @@ export default function UploadTileModal({ onClose, onSuccess }) {
       const cloudData = await cloudRes.json();
       if (!cloudRes.ok) throw new Error(cloudData.error?.message || 'Cloudinary upload failed');
 
-    setUploadStage('Saving product…');
+      setUploadStage('Saving product…');
       const formData = new FormData(formRef.current);
       formData.delete('tileImage');
       formData.append('imageUrl', cloudData.secure_url);
       formData.append('userIndustry', JSON.stringify(selectedIndustries));
 
-      // NEW: Intercept the raw tags string, format it, and overwrite it
+      // Format tags as JSON array
       const rawTags = formData.get('tags');
       if (rawTags) {
         const tagsArray = rawTags.split(',').map(t => t.trim()).filter(Boolean);
@@ -302,23 +319,28 @@ export default function UploadTileModal({ onClose, onSuccess }) {
       if (!response.ok) throw new Error(data.error || 'Failed to save product');
 
       // ── Backup Submit Fallback Auto-Saver ───────────────────────────────────
-      const savedNavCategory = formData.get('navCategory');
-      const savedCollection = formData.get('accordionCategory');
-      const savedColour = formData.get('colour');
-      const savedShade = formData.get('shade');
+      const savedNavCategory  = formData.get('navCategory');
+      const savedCollection   = formData.get('accordionCategory');
+      const savedColour       = formData.get('colour');
+      const savedShade        = formData.get('shade');
+      const savedThickness    = formData.get('thickness'); // NEW
+      const savedStyle        = formData.get('style');     // NEW
+      const savedPattern      = formData.get('pattern');   // NEW
 
-      if (savedNavCategory && !persistentNavCategories.includes(savedNavCategory)) {
+      if (savedNavCategory && !persistentNavCategories.includes(savedNavCategory))
         persistentNavCategories = [...persistentNavCategories, savedNavCategory];
-      }
-      if (savedCollection && !persistentCollections.includes(savedCollection)) {
+      if (savedCollection && !persistentCollections.includes(savedCollection))
         persistentCollections = [...persistentCollections, savedCollection];
-      }
-      if (savedColour && !persistentColorFamilies.includes(savedColour)) {
+      if (savedColour && !persistentColorFamilies.includes(savedColour))
         persistentColorFamilies = [...persistentColorFamilies, savedColour];
-      }
-      if (savedShade && !persistentShadeOptions.includes(savedShade)) {
+      if (savedShade && !persistentShadeOptions.includes(savedShade))
         persistentShadeOptions = [...persistentShadeOptions, savedShade];
-      }
+      if (savedThickness && !persistentThicknessOptions.includes(savedThickness)) // NEW
+        persistentThicknessOptions = [...persistentThicknessOptions, savedThickness];
+      if (savedStyle && !persistentStyleOptions.includes(savedStyle))             // NEW
+        persistentStyleOptions = [...persistentStyleOptions, savedStyle];
+      if (savedPattern && !persistentPatternOptions.includes(savedPattern))       // NEW
+        persistentPatternOptions = [...persistentPatternOptions, savedPattern];
 
       setLoading(false);
       if (onSuccess) onSuccess();
@@ -373,145 +395,165 @@ export default function UploadTileModal({ onClose, onSuccess }) {
             </div>
           )}
 
-          {/* ── Main fields grid ── */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+          {/* ── Section: Core Identity ── */}
+          <div>
+            <p className="text-[11px] font-bold uppercase tracking-widest text-slate-400 mb-3">Core Details</p>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
 
-            {/* Product Name */}
-            <div>
-              <label className="block text-[13px] font-semibold text-slate-600 mb-1.5">Product Name</label>
-              <input
-                type="text" name="name" required
-                placeholder="e.g., Pastel Mint"
-                className="w-full bg-white border border-slate-200 rounded-lg px-4 py-2.5 text-slate-800 text-sm focus:border-[#0b9e7a] focus:ring-1 focus:ring-[#0b9e7a] focus:outline-none transition-all placeholder:text-slate-400"
-              />
+              {/* Product Name */}
+              <div>
+                <label className="block text-[13px] font-semibold text-slate-600 mb-1.5">Product Name</label>
+                <input
+                  type="text" name="name" required
+                  placeholder="e.g., Pastel Mint"
+                  className="w-full bg-white border border-slate-200 rounded-lg px-4 py-2.5 text-slate-800 text-sm focus:border-[#0b9e7a] focus:ring-1 focus:ring-[#0b9e7a] focus:outline-none transition-all placeholder:text-slate-400"
+                />
+              </div>
+
+              {/* SKU */}
+              <div>
+                <label className="block text-[13px] font-semibold text-slate-600 mb-1.5">SKU Code</label>
+                <input
+                  type="text" name="sku" required
+                  placeholder="e.g., WF/KR/0010"
+                  className="w-full bg-white border border-slate-200 rounded-lg px-4 py-2.5 text-slate-800 text-sm focus:border-[#0b9e7a] focus:ring-1 focus:ring-[#0b9e7a] focus:outline-none transition-all uppercase placeholder:text-slate-400"
+                />
+              </div>
+
+              {/* Physical Size */}
+              <div>
+                <label className="block text-[13px] font-semibold text-slate-600 mb-1.5">Physical Size</label>
+                <input
+                  type="text" name="size" required
+                  placeholder="e.g., 2mtr x 15mtr (Roll)"
+                  className="w-full bg-white border border-slate-200 rounded-lg px-4 py-2.5 text-slate-800 text-sm focus:border-[#0b9e7a] focus:ring-1 focus:ring-[#0b9e7a] focus:outline-none transition-all placeholder:text-slate-400"
+                />
+              </div>
+
+              {/* Searchable Tags — full width */}
+              <div className="md:col-span-2 lg:col-span-3">
+                <label className="block text-[13px] font-semibold text-slate-600 mb-1.5">Searchable Tags (Comma Separated)</label>
+                <input
+                  type="text" name="tags"
+                  placeholder="e.g., mint, dark green, eco-friendly, pastel"
+                  className="w-full bg-white border border-slate-200 rounded-lg px-4 py-2.5 text-slate-800 text-sm focus:border-[#0b9e7a] focus:ring-1 focus:ring-[#0b9e7a] focus:outline-none transition-all placeholder:text-slate-400"
+                />
+                <span className="text-[10px] text-slate-400 mt-1 block">
+                  Add alternate names or keywords to help users find this tile in search.
+                </span>
+              </div>
+
             </div>
+          </div>
 
-            {/* SKU */}
-            <div>
-              <label className="block text-[13px] font-semibold text-slate-600 mb-1.5">SKU Code</label>
-              <input
-                type="text" name="sku" required
-                placeholder="e.g., WF/KR/0010"
-                className="w-full bg-white border border-slate-200 rounded-lg px-4 py-2.5 text-slate-800 text-sm focus:border-[#0b9e7a] focus:ring-1 focus:ring-[#0b9e7a] focus:outline-none transition-all uppercase placeholder:text-slate-400"
+          {/* ── Section: Classification ── */}
+          <div>
+            <p className="text-[11px] font-bold uppercase tracking-widest text-slate-400 mb-3">Classification</p>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+
+              <ToggleSelectField
+                label="Main Nav Category"
+                name="navCategory"
+                options={navCategories}
+                onAddOption={(val) => setNavCategories((prev) => { const u = [...prev, val]; persistentNavCategories = u; return u; })}
+                onRemoveOption={(val) => setNavCategories((prev) => { const u = prev.filter(i => i !== val); persistentNavCategories = u; return u; })}
+                selectPlaceholder="Select tab…"
+                createPlaceholder="e.g., Outdoor Flooring"
               />
-            </div>
 
-            {/* Physical Size */}
-            <div>
-              <label className="block text-[13px] font-semibold text-slate-600 mb-1.5">Physical Size</label>
-              <input
-                type="text" name="size" required
-                placeholder="e.g., 2mtr x 15mtr (Roll)"
-                className="w-full bg-white border border-slate-200 rounded-lg px-4 py-2.5 text-slate-800 text-sm focus:border-[#0b9e7a] focus:ring-1 focus:ring-[#0b9e7a] focus:outline-none transition-all placeholder:text-slate-400"
+              <ToggleSelectField
+                label="Product Collection"
+                name="accordionCategory"
+                options={collections}
+                onAddOption={(val) => setCollections((prev) => { const u = [...prev, val]; persistentCollections = u; return u; })}
+                onRemoveOption={(val) => setCollections((prev) => { const u = prev.filter(i => i !== val); persistentCollections = u; return u; })}
+                selectPlaceholder="Select collection…"
+                createPlaceholder="Enter new collection name"
               />
-            </div>
 
-            {/* NEW: Searchable Tags */}
-            <div className="md:col-span-2 lg:col-span-3">
-              <label className="block text-[13px] font-semibold text-slate-600 mb-1.5">Searchable Tags (Comma Separated)</label>
-              <input
-                type="text" name="tags"
-                placeholder="e.g., mint, dark green, eco-friendly, pastel"
-                className="w-full bg-white border border-slate-200 rounded-lg px-4 py-2.5 text-slate-800 text-sm focus:border-[#0b9e7a] focus:ring-1 focus:ring-[#0b9e7a] focus:outline-none transition-all placeholder:text-slate-400"
+              <ToggleSelectField
+                label="Color"
+                name="colour"
+                options={colorFamilies}
+                onAddOption={(val) => setColorFamilies((prev) => { const u = [...prev, val]; persistentColorFamilies = u; return u; })}
+                onRemoveOption={(val) => setColorFamilies((prev) => { const u = prev.filter(i => i !== val); persistentColorFamilies = u; return u; })}
+                selectPlaceholder="Select color…"
+                createPlaceholder="e.g., Terra Cotta"
               />
-              <span className="text-[10px] text-slate-400 mt-1 block">
-                Add alternate names or keywords to help users find this tile in search.
-              </span>
+
+              <ToggleSelectField
+                label="Shade"
+                name="shade"
+                options={shadeOptions}
+                onAddOption={(val) => setShadeOptions((prev) => { const u = [...prev, val]; persistentShadeOptions = u; return u; })}
+                onRemoveOption={(val) => setShadeOptions((prev) => { const u = prev.filter(i => i !== val); persistentShadeOptions = u; return u; })}
+                selectPlaceholder="Select shade…"
+                createPlaceholder="e.g., Extra Dark"
+              />
+
+              {/* ── NEW: Thickness ── */}
+              <ToggleSelectField
+                label="Thickness"
+                name="thickness"
+                required={false}
+                options={thicknessOptions}
+                onAddOption={(val) => setThicknessOptions((prev) => { const u = [...prev, val]; persistentThicknessOptions = u; return u; })}
+                onRemoveOption={(val) => setThicknessOptions((prev) => { const u = prev.filter(i => i !== val); persistentThicknessOptions = u; return u; })}
+                selectPlaceholder="Select thickness…"
+                createPlaceholder="e.g., 2.5mm or 1.0mm, 2.0mm"
+              />
+
+              {/* ── NEW: Style ── */}
+              <ToggleSelectField
+                label="Style"
+                name="style"
+                required={false}
+                options={styleOptions}
+                onAddOption={(val) => setStyleOptions((prev) => { const u = [...prev, val]; persistentStyleOptions = u; return u; })}
+                onRemoveOption={(val) => setStyleOptions((prev) => { const u = prev.filter(i => i !== val); persistentStyleOptions = u; return u; })}
+                selectPlaceholder="Select style…"
+                createPlaceholder="e.g., Cushion Vinyl"
+              />
+
+              {/* ── NEW: Pattern / Layout ── */}
+              <ToggleSelectField
+                label="Pattern / Layout"
+                name="pattern"
+                required={false}
+                options={patternOptions}
+                onAddOption={(val) => setPatternOptions((prev) => { const u = [...prev, val]; persistentPatternOptions = u; return u; })}
+                onRemoveOption={(val) => setPatternOptions((prev) => { const u = prev.filter(i => i !== val); persistentPatternOptions = u; return u; })}
+                selectPlaceholder="Select pattern…"
+                createPlaceholder="e.g., Directional"
+              />
+
+              {/* ── NEW: Product Link — full width ── */}
+              <div className="md:col-span-2 lg:col-span-3">
+                <label className="block text-[13px] font-semibold text-slate-600 mb-1.5">Product Link</label>
+                <div className="relative">
+                  <span className="absolute inset-y-0 left-3.5 flex items-center pointer-events-none text-slate-400">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" />
+                      <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" />
+                    </svg>
+                  </span>
+                  <input
+                    type="url" name="productLink"
+                    placeholder="https://example.com/product-page"
+                    className="w-full bg-white border border-slate-200 rounded-lg pl-9 pr-4 py-2.5 text-slate-800 text-sm focus:border-[#0b9e7a] focus:ring-1 focus:ring-[#0b9e7a] focus:outline-none transition-all placeholder:text-slate-400"
+                  />
+                </div>
+                <span className="text-[10px] text-slate-400 mt-1 block">
+                  Optional URL to a product datasheet, catalogue page, or external listing.
+                </span>
+              </div>
+
             </div>
-            {/* ── Dynamic Toggle Select Fields ── */}
-            <ToggleSelectField
-              label="Main Nav Category"
-              name="navCategory"
-              options={navCategories}
-              onAddOption={(val) => {
-                setNavCategories((prev) => {
-                  const updated = [...prev, val];
-                  persistentNavCategories = updated;
-                  return updated;
-                });
-              }}
-              onRemoveOption={(val) => {
-                setNavCategories((prev) => {
-                  const updated = prev.filter((i) => i !== val);
-                  persistentNavCategories = updated;
-                  return updated;
-                });
-              }}
-              selectPlaceholder="Select tab…"
-              createPlaceholder="e.g., Outdoor Flooring"
-            />
-
-            <ToggleSelectField
-              label="Product Collection"
-              name="accordionCategory"
-              options={collections}
-              onAddOption={(val) => {
-                setCollections((prev) => {
-                  const updated = [...prev, val];
-                  persistentCollections = updated;
-                  return updated;
-                });
-              }}
-              onRemoveOption={(val) => {
-                setCollections((prev) => {
-                  const updated = prev.filter((i) => i !== val);
-                  persistentCollections = updated;
-                  return updated;
-                });
-              }}
-              selectPlaceholder="Select collection…"
-              createPlaceholder="Enter new collection name"
-            />
-
-            <ToggleSelectField
-              label="Color"
-              name="colour"
-              options={colorFamilies}
-              onAddOption={(val) => {
-                setColorFamilies((prev) => {
-                  const updated = [...prev, val];
-                  persistentColorFamilies = updated;
-                  return updated;
-                });
-              }}
-              onRemoveOption={(val) => {
-                setColorFamilies((prev) => {
-                  const updated = prev.filter((i) => i !== val);
-                  persistentColorFamilies = updated;
-                  return updated;
-                });
-              }}
-              selectPlaceholder="Select color…"
-              createPlaceholder="e.g., Terra Cotta"
-            />
-
-            <ToggleSelectField
-              label="Shade"
-              name="shade"
-              options={shadeOptions}
-              onAddOption={(val) => {
-                setShadeOptions((prev) => {
-                  const updated = [...prev, val];
-                  persistentShadeOptions = updated;
-                  return updated;
-                });
-              }}
-              onRemoveOption={(val) => {
-                setShadeOptions((prev) => {
-                  const updated = prev.filter((i) => i !== val);
-                  persistentShadeOptions = updated;
-                  return updated;
-                });
-              }}
-              selectPlaceholder="Select shade…"
-              createPlaceholder="e.g., Extra Dark"
-            />
-
           </div>
 
           {/* ── Recommended Industries ── */}
           <div>
-            <label className="block text-[13px] font-semibold text-slate-600 mb-2">Recommended Industries</label>
+            <p className="text-[11px] font-bold uppercase tracking-widest text-slate-400 mb-3">Recommended Industries</p>
             <div className="bg-white border border-slate-200 rounded-lg p-4 shadow-sm flex flex-col gap-4">
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
                 {industries.map((ind) => (
@@ -527,16 +569,11 @@ export default function UploadTileModal({ onClose, onSuccess }) {
                       </div>
                       <span className="text-xs font-medium text-slate-600 group-hover:text-slate-900 transition-colors truncate pr-4">{ind}</span>
                     </label>
-
                     <button
                       type="button"
                       onClick={() => {
-                        setIndustries((prev) => {
-                          const updated = prev.filter((i) => i !== ind);
-                          persistentIndustries = updated;
-                          return updated;
-                        });
-                        setSelectedIndustries((prev) => prev.filter((i) => i !== ind));
+                        setIndustries((prev) => { const u = prev.filter(i => i !== ind); persistentIndustries = u; return u; });
+                        setSelectedIndustries((prev) => prev.filter(i => i !== ind));
                       }}
                       className="text-slate-400 hover:text-red-500 p-0.5 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap"
                       title={`Remove ${ind}`}
@@ -570,43 +607,46 @@ export default function UploadTileModal({ onClose, onSuccess }) {
           </div>
 
           {/* ── Description + Texture ── */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-            <div>
-              <label className="block text-[13px] font-semibold text-slate-600 mb-1.5">Product Description</label>
-              <textarea
-                name="description" rows="5"
-                placeholder="Enter product description for the details modal..."
-                className="w-full h-32 bg-white border border-slate-200 rounded-xl px-4 py-3 text-slate-800 text-sm focus:border-[#0b9e7a] focus:ring-1 focus:ring-[#0b9e7a] focus:outline-none transition-all resize-none placeholder:text-slate-400 shadow-sm"
-              />
-            </div>
-
-            <div>
-              <label className="block text-[13px] font-semibold text-slate-600 mb-1.5">Tile Texture Image (JPG/PNG)</label>
-              <div className="relative w-full h-32 bg-white border-2 border-dashed border-slate-200 hover:border-[#0b9e7a] rounded-xl flex items-center justify-center overflow-hidden transition-all group cursor-pointer shadow-sm">
-                <input
-                  type="file" accept="image/*" required
-                  onChange={handleTileChange}
-                  className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-20"
+          <div>
+            <p className="text-[11px] font-bold uppercase tracking-widest text-slate-400 mb-3">Media & Description</p>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+              <div>
+                <label className="block text-[13px] font-semibold text-slate-600 mb-1.5">Product Description</label>
+                <textarea
+                  name="description" rows="5"
+                  placeholder="Enter product description for the details modal..."
+                  className="w-full h-32 bg-white border border-slate-200 rounded-xl px-4 py-3 text-slate-800 text-sm focus:border-[#0b9e7a] focus:ring-1 focus:ring-[#0b9e7a] focus:outline-none transition-all resize-none placeholder:text-slate-400 shadow-sm"
                 />
-                {tilePreview ? (
-                  <>
-                    <img src={tilePreview} alt="Tile Texture Preview" className="w-full h-full object-cover" />
-                    <div className="absolute inset-0 bg-slate-900/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity z-10">
-                      <span className="text-slate-800 text-xs font-semibold bg-white px-3 py-1.5 rounded-md shadow-md">Change Texture</span>
-                    </div>
-                  </>
-                ) : (
-                  <div className="flex flex-col items-center pointer-events-none text-slate-400 group-hover:text-[#0b9e7a] transition-colors">
-                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="mb-2">
-                      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-                      <polyline points="17 8 12 3 7 8" />
-                      <line x1="12" y1="3" x2="12" y2="15" />
-                    </svg>
-                    <span className="text-xs font-medium">Upload seamless texture</span>
-                  </div>
-                )}
               </div>
-              <SizeBadge />
+
+              <div>
+                <label className="block text-[13px] font-semibold text-slate-600 mb-1.5">Tile Texture Image (JPG/PNG)</label>
+                <div className="relative w-full h-32 bg-white border-2 border-dashed border-slate-200 hover:border-[#0b9e7a] rounded-xl flex items-center justify-center overflow-hidden transition-all group cursor-pointer shadow-sm">
+                  <input
+                    type="file" accept="image/*" required
+                    onChange={handleTileChange}
+                    className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-20"
+                  />
+                  {tilePreview ? (
+                    <>
+                      <img src={tilePreview} alt="Tile Texture Preview" className="w-full h-full object-cover" />
+                      <div className="absolute inset-0 bg-slate-900/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity z-10">
+                        <span className="text-slate-800 text-xs font-semibold bg-white px-3 py-1.5 rounded-md shadow-md">Change Texture</span>
+                      </div>
+                    </>
+                  ) : (
+                    <div className="flex flex-col items-center pointer-events-none text-slate-400 group-hover:text-[#0b9e7a] transition-colors">
+                      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="mb-2">
+                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                        <polyline points="17 8 12 3 7 8" />
+                        <line x1="12" y1="3" x2="12" y2="15" />
+                      </svg>
+                      <span className="text-xs font-medium">Upload seamless texture</span>
+                    </div>
+                  )}
+                </div>
+                <SizeBadge />
+              </div>
             </div>
           </div>
 
