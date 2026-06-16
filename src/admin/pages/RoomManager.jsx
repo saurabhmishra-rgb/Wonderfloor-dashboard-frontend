@@ -5,6 +5,8 @@ import UploadRoomModal from '../components/UploadRoomModal';
 import BulkUploadRoomModal from '../components/BulkUploadRoomModal';
 import RoomDetail from './RoomDetail';
 import DeleteRoomModal from '../components/DeleteProductModal'; // Import the new clear delete handler component
+import { useSearch } from '../components/SearchContext'; // <-- Import the search context hook
+import GlobalSearch from '../components/GlobalSearch'; // If you want to show it in the header
 
 const Icon = {
   grid: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><rect x="3" y="3" width="7" height="7" /><rect x="14" y="3" width="7" height="7" /><rect x="14" y="14" width="7" height="7" /><rect x="3" y="14" width="7" height="7" /></svg>,
@@ -15,17 +17,16 @@ const Icon = {
   upload: <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="17 8 12 3 7 8" /><line x1="12" y1="3" x2="12" y2="15" /></svg>,
   menu: <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="3" y1="6" x2="21" y2="6" /><line x1="3" y1="12" x2="21" y2="12" /><line x1="3" y1="18" x2="21" y2="18" /></svg>,
   close: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>,
-  
-  // Clean, scalable inline icons matching ProductManager specs
   edit: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" /><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" /></svg>,
   trash: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="3 6 5 6 21 6" /><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" /><line x1="10" y1="11" x2="10" y2="17" /><line x1="14" y1="11" x2="14" y2="17" /></svg>,
+   logout: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>,
 };
 
 const navItems = [
-  { label: 'Overview', icon: 'grid', key: 'overview', path: '/admin', group: null },
-  { label: 'Room images', icon: 'photo', key: 'rooms', path: '/admin/rooms', group: 'MANAGE' },
-  { label: 'Tile products', icon: 'stack', key: 'products', path: '/admin/products', group: null },
-  { label: 'Admin users', icon: 'users', key: 'users', path: '/admin/sidebar', group: 'SETTINGS' },
+  { label: ' Dashboard Overview', icon: 'grid', key: 'overview', path: '/admin', group: null },
+  { label: 'Demo Rooms', icon: 'photo', key: 'rooms', path: '/admin/rooms', group: 'MANAGE' },
+  { label: 'Flooring Products', icon: 'stack', key: 'products', path: '/admin/products', group: null },
+  // { label: 'Admin users', icon: 'users', key: 'users', path: '/admin/sidebar', group: 'SETTINGS' },
   { label: 'Settings', icon: 'settings', key: 'settings', path: '/admin/settings', group: null },
 ];
 
@@ -45,22 +46,23 @@ function LiveToggle({ isLive, onToggle, loading }) {
   );
 }
 
-/* ═══════════════════════════════════════════════════════════════════
-   MAIN COMPONENT
-═══════════════════════════════════════════════════════════════════ */
 export default function RoomManager() {
+  const { searchQuery } = useSearch();
   const [selectedRoomId, setSelectedRoomId] = useState(null);
-  const [roomDetailMode, setRoomDetailMode] = useState('view'); // tracks 'view' | 'edit' structure
-  const [roomToDelete, setRoomToDelete] = useState(null);       // references decoupled modular deletion target
-  
+  const [roomDetailMode, setRoomDetailMode] = useState('view');
+  const [roomToDelete, setRoomToDelete] = useState(null);
+
   const [activeTab, setActiveTab] = useState('All');
   const [rooms, setRooms] = useState([]);
   const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [togglingId, setTogglingId] = useState(null);   
-  const [togglingCat, setTogglingCat] = useState(null);   
+  const [togglingId, setTogglingId] = useState(null);
+  const [togglingCat, setTogglingCat] = useState(null);
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
   const [isBulkModalOpen, setIsBulkModalOpen] = useState(false);
+
+  const [editingCategory, setEditingCategory] = useState(null);
+  const [editingCategoryValue, setEditingCategoryValue] = useState('');
 
   const navigate = useNavigate();
   const location = useLocation();
@@ -82,12 +84,31 @@ export default function RoomManager() {
 
   useEffect(() => { fetchRoomsData(); }, []);
 
-  /* ── helper hooks for workspace context state changes ── */
   function openRoomDetail(id) { setSelectedRoomId(id); setRoomDetailMode('view'); }
   function openRoomEdit(id, e) { e?.stopPropagation(); setSelectedRoomId(id); setRoomDetailMode('edit'); }
-  function closeRoomDetail()    { setSelectedRoomId(null); setRoomDetailMode('view'); }
+  function closeRoomDetail() { setSelectedRoomId(null); setRoomDetailMode('view'); }
 
-  // ── Per-card toggle ──
+  async function handleRenameCategory(oldFullCat, newName) {
+    const trimmed = newName.trim();
+    setEditingCategory(null);
+    if (!trimmed || trimmed === oldFullCat) return;
+
+    const catRooms = rooms.filter(r => r.category === oldFullCat);
+    await Promise.all(
+      catRooms.map(r =>
+        fetch(`http://localhost:8000/rooms/${r._id}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ category: trimmed }),
+        })
+      )
+    );
+    setRooms(prev =>
+      prev.map(r => r.category === oldFullCat ? { ...r, category: trimmed } : r)
+    );
+    setActiveTab(trimmed);
+  }
+
   async function handleToggleLive(e, roomId) {
     e.stopPropagation();
     setTogglingId(roomId);
@@ -107,7 +128,6 @@ export default function RoomManager() {
     }
   }
 
-  // ── Category-level bulk toggle ──
   async function handleToggleCategory(e, categoryName) {
     e.stopPropagation();
     const categoryRooms = rooms.filter(r => r.category === categoryName);
@@ -132,7 +152,6 @@ export default function RoomManager() {
     }
   }
 
-  // ── Derived values ──
   const dynamicCategories = ['All', ...Array.from(
     new Set(
       rooms
@@ -141,14 +160,22 @@ export default function RoomManager() {
     )
   ).sort()];
 
-  const filteredRooms = activeTab === 'All'
+  const categoryFiltered = activeTab === 'All'
     ? rooms
-    : rooms.filter(room => room.category && room.category.includes(activeTab));
+    : rooms.filter(room => room.category === activeTab);
+
+  const filteredRooms = categoryFiltered.filter(room => {
+    const query = searchQuery.toLowerCase();
+    return (
+      room.name?.toLowerCase().includes(query) ||
+      room.category?.toLowerCase().includes(query)
+    );
+  });
 
   const getCount = (cat) =>
     cat === 'All'
       ? rooms.length
-      : rooms.filter(r => r.category && r.category.includes(cat)).length;
+      : rooms.filter(r => r.category === cat).length;
 
   const getLiveCount = (cat) =>
     rooms.filter(r => r.category && r.category.includes(cat) && r.isLive).length;
@@ -167,8 +194,12 @@ export default function RoomManager() {
     <>
       <div className="px-5 pt-5 pb-[18px] border-b border-[#e8e8e8] flex items-center justify-between">
         <div>
-          <div className="text-[17px] font-semibold text-[#111111] tracking-tight">Wonderfloor</div>
-          <div className="text-xs text-[#aaaaaa] mt-0.5">Admin panel</div>
+          <div className="text-[17px] font-semibold text-[#111111] tracking-tight"> <img
+                src="https://www.wonderfloor.co.in/assets/img/logo/logo.png"
+                alt="Logo"
+                className="h-8 max-w-[150px] md:max-w-[180px] object-contain"
+              /></div>
+          {/* <div className="text-xs text-[#aaaaaa] mt-0.5">Admin panel</div> */}
         </div>
         <button
           onClick={() => setIsMobileSidebarOpen(false)}
@@ -192,8 +223,8 @@ export default function RoomManager() {
               <button
                 onClick={() => { navigate(item.path); setIsMobileSidebarOpen(false); }}
                 className={`flex items-center gap-2.5 w-full px-5 py-[9px] border-l-2 text-[13px] text-left transition-all duration-150 cursor-pointer group ${isActive
-                    ? 'bg-[#edf9f5] border-[#0b9e7a] text-[#0b9e7a] font-medium'
-                    : 'bg-transparent border-transparent text-[#888888] font-normal hover:text-[#333333] hover:bg-[#f5f5f5]'
+                  ? 'bg-[#edf9f5] border-[#0b9e7a] text-[#0b9e7a] font-medium'
+                  : 'bg-transparent border-transparent text-[#888888] font-normal hover:text-[#333333] hover:bg-[#f5f5f5]'
                   }`}
               >
                 <span className={`transition-opacity ${isActive ? 'opacity-100' : 'opacity-60 group-hover:opacity-90'}`}>
@@ -206,16 +237,26 @@ export default function RoomManager() {
         })}
       </nav>
 
-      <div className="px-5 pt-3.5 pb-[18px] border-t border-[#e8e8e8]">
-        <div className="text-[11px] text-[#aaaaaa]">Logged in as</div>
-        <div className="text-[13px] font-medium text-[#333333] mt-0.5">Admin</div>
-      </div>
+     <div className="px-5 pt-3.5 pb-[18px] border-t border-[#e8e8e8] flex justify-between items-center">
+          <div>
+            <div className="text-[11px] text-[#aaaaaa]">Logged in as</div>
+            <div className="text-[13px] font-medium text-[#333333] mt-0.5">Admin</div>
+          </div>
+
+          {/* 👇 YOUR LOGOUT BUTTON 👇 */}
+          <button
+            onClick={() => navigate('/admin/logout')}
+            className="text-[#888888] hover:text-red-500 transition-colors p-2 rounded-md hover:bg-red-50 cursor-pointer"
+            title="Log Out"
+          >
+            {Icon.logout}
+          </button>
+        </div>
     </>
   );
 
   return (
     <div className="flex h-screen w-full font-sans bg-[#f4f4f5] text-[#111111] overflow-hidden">
-
       {isMobileSidebarOpen && (
         <div
           className="fixed inset-0 bg-black/40 backdrop-blur-sm z-40 md:hidden"
@@ -243,7 +284,7 @@ export default function RoomManager() {
             </button>
             <h1 className="text-base font-medium text-[#111111] truncate">Room images</h1>
           </div>
-
+          <GlobalSearch />
           <div className="flex items-center gap-2 shrink-0">
             <button
               onClick={() => setIsBulkModalOpen(true)}
@@ -253,8 +294,8 @@ export default function RoomManager() {
                 <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
                 <polyline points="14 2 14 8 20 8" />
               </svg>
-              <span className="hidden sm:inline">Bulk via Excel</span>
-              <span className="sm:hidden">Excel</span>
+              <span className="hidden sm:inline">Bulk Upload</span>
+              {/* <span className="sm:hidden">Excel</span> */}
             </button>
 
             <button
@@ -262,7 +303,7 @@ export default function RoomManager() {
               className="flex items-center gap-1.5 bg-[#0b9e7a] hover:bg-[#09866a] text-white px-3 md:px-4 py-2 rounded-lg transition-colors cursor-pointer text-xs md:text-sm font-medium shadow-sm shrink-0 whitespace-nowrap"
             >
               {Icon.upload}
-              <span className="hidden sm:inline">Upload new room</span>
+              <span className="hidden sm:inline">Add Demo Room</span>
               <span className="sm:hidden">Upload</span>
             </button>
           </div>
@@ -276,34 +317,73 @@ export default function RoomManager() {
           <div className="flex flex-wrap gap-2 mb-3">
             {dynamicCategories.map((category) => {
               const isAll = category === 'All';
-              const isActive = activeTab === category;
               const fullCat = rooms.find(r => r.category?.replace(' Flooring', '').trim() === category)?.category || category;
+              const isActive = isAll ? activeTab === 'All' : activeTab === fullCat;
 
               const fullyLive = !isAll && isCategoryFullyLive(fullCat);
               const partialLive = !isAll && isCategoryPartiallyLive(fullCat);
               const liveCount = !isAll ? getLiveCount(fullCat) : null;
+              const isEditing = editingCategory === fullCat;
 
               return (
-                <button
-                  key={category}
-                  onClick={() => setActiveTab(category)}
-                  className={`flex items-center gap-1.5 px-3 md:px-4 py-1.5 rounded-full text-xs md:text-sm font-medium transition-all duration-150 cursor-pointer whitespace-nowrap ${isActive
+                <div key={category} className="relative flex items-center">
+                  <button
+                    onClick={() => setActiveTab(isAll ? 'All' : fullCat)}
+                    className={`flex items-center gap-1.5 px-3 md:px-4 py-1.5 rounded-full text-xs md:text-sm font-medium transition-all duration-150 cursor-pointer whitespace-nowrap ${isActive
                       ? 'bg-[#0b9e7a] text-white border border-[#0b9e7a] shadow-sm'
                       : 'bg-white border border-[#e0e0e0] text-[#666666] hover:border-[#aaaaaa] hover:text-[#111111]'
-                    }`}
-                >
-                  {category}
-                  <span className={`text-[11px] ${isActive ? 'opacity-80' : 'text-[#aaaaaa]'}`}>
-                    {getCount(category)}
-                  </span>
+                      }`}
+                  >
+                    {isEditing ? (
+                      <input
+                        autoFocus
+                        value={editingCategoryValue}
+                        onChange={e => setEditingCategoryValue(e.target.value)}
+                        onBlur={() => handleRenameCategory(fullCat, editingCategoryValue)}
+                        onKeyDown={e => {
+                          if (e.key === 'Enter') handleRenameCategory(fullCat, editingCategoryValue);
+                          if (e.key === 'Escape') setEditingCategory(null);
+                        }}
+                        onClick={e => e.stopPropagation()}
+                        // conditionally apply text and border colors based on isActive
+                        className={`bg-transparent focus:outline-none border-b w-20 transition-colors ${isActive
+                            ? 'border-white/60 focus:border-white text-white placeholder-white/60'
+                            : 'border-[#cccccc] focus:border-[#0b9e7a] text-[#111111] placeholder-[#aaaaaa]'
+                          }`}
+                      />
+                    ) : (
+                      <span>{category}</span>
+                    )}
 
-                  {!isAll && (
-                    <span
-                      title={`${liveCount} of ${getCount(category)} live`}
-                      className={`w-1.5 h-1.5 rounded-full ${fullyLive ? 'bg-emerald-400' : partialLive ? 'bg-amber-400' : 'bg-[#cccccc]'}`}
-                    />
+                    <span className={`text-[11px] ${isActive ? 'opacity-80' : 'text-[#aaaaaa]'}`}>
+                      {getCount(isAll ? 'All' : fullCat)}
+                    </span>
+
+                    {!isAll && (
+                      <span
+                        title={`${liveCount} of ${getCount(fullCat)} live`}
+                        className={`w-1.5 h-1.5 rounded-full ${fullyLive ? 'bg-emerald-400' : partialLive ? 'bg-amber-400' : 'bg-[#cccccc]'}`}
+                      />
+                    )}
+                  </button>
+
+                  {!isAll && !isEditing && (
+                    <button
+                      onClick={e => {
+                        e.stopPropagation();
+                        setEditingCategory(fullCat);
+                        setEditingCategoryValue(fullCat);
+                      }}
+                      className="ml-1 p-1 rounded-md text-[#cccccc] hover:text-[#0b9e7a] hover:bg-white transition-colors"
+                      title="Rename category"
+                    >
+                      <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+                        <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+                      </svg>
+                    </button>
                   )}
-                </button>
+                </div>
               );
             })}
           </div>
@@ -389,13 +469,12 @@ export default function RoomManager() {
                       {room.category}
                     </span>
 
-                    {/* DYNAMIC SMARTER ACTION ROW: Symmetrical to your Product catalogue setup */}
                     <div className="mt-4 pt-3 border-t border-[#f0f0f0] flex items-center justify-between">
                       <span className={`text-[10px] font-semibold flex items-center gap-1 ${room.isLive ? 'text-[#0b9e7a]' : 'text-[#cccccc]'}`}>
                         <span className={`w-1.5 h-1.5 rounded-full ${room.isLive ? 'bg-[#0b9e7a] animate-pulse' : 'bg-[#dddddd]'}`} />
                         {room.isLive ? 'Live' : 'Off'}
                       </span>
-                      
+
                       <div className="flex gap-1.5 shrink-0">
                         <button
                           onClick={(e) => openRoomEdit(room._id, e)}
@@ -416,7 +495,6 @@ export default function RoomManager() {
                         </button>
                       </div>
                     </div>
-
                   </div>
                 </div>
               ))}
@@ -425,14 +503,13 @@ export default function RoomManager() {
         </div>
       </main>
 
-      {/* ═══════════ MODALS ═══════════ */}
       {isModalOpen && (
         <UploadRoomModal
           onClose={() => setIsModalOpen(false)}
           onSuccess={() => { fetchRoomsData(); setIsModalOpen(false); }}
         />
       )}
-      
+
       {selectedRoomId && (
         <RoomDetail
           roomId={selectedRoomId}
@@ -440,7 +517,7 @@ export default function RoomManager() {
           onClose={closeRoomDetail}
         />
       )}
-       
+
       {isBulkModalOpen && (
         <BulkUploadRoomModal
           onClose={() => setIsBulkModalOpen(false)}
@@ -448,14 +525,13 @@ export default function RoomManager() {
         />
       )}
 
-      {/* NEW Decoupled Delete Modal context rendering loop */}
       {roomToDelete && (
         <DeleteRoomModal
           room={roomToDelete}
           onClose={() => setRoomToDelete(null)}
           onSuccess={() => {
             setRoomToDelete(null);
-            fetchRoomsData(); // Refresh room grid structures automatically
+            fetchRoomsData();
           }}
         />
       )}

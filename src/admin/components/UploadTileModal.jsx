@@ -1,56 +1,67 @@
 import { useState, useRef } from 'react';
+
 const BASE_URL = import.meta.env.VITE_NODE_BACKEND_URL || 'http://localhost:8000';
 
-const NAV_CATEGORIES = [
-  { id: 'Flooring Products', label: 'Flooring Products' },
-  { id: 'Luxury Vinyl Tile', label: 'Luxury Vinyl Tile' }
-];
-
-const INITIAL_ACCORDION_CATEGORIES = [
+// ─── Initial data constants ───────────────────────────────────────────────────
+const INITIAL_NAV_CATEGORIES = ['Flooring Products', 'Luxury Vinyl Tile'];
+const INITIAL_COLLECTIONS = [
   'Braavo', 'Krayons', 'Durofloor', 'Siggma', 'Orbit', 'Stoneland Monza',
   'Meteor', 'Aventus', 'Timberworld 1.5mm', 'Timberland Exotica 2mm',
   'Timberland Maestro 3mm', 'Timberland Widex', 'Timberland Herringbone',
-  'Grandeure Supreme'
+  'Grandeure Supreme',
 ];
-
-const SHADES = ['Light', 'Medium', 'Dark'];
-const COLOR_FAMILIES = ['Grey', 'Beige', 'Brown', 'Black', 'White', 'Blue', 'Green', 'Red', 'Orange', 'Yellow', 'Purple', 'Pink'];
-
+const INITIAL_SHADES = ['Light', 'Medium', 'Dark'];
+const INITIAL_COLOR_FAMILIES = [
+  'Grey', 'Beige', 'Brown', 'Black', 'White',
+  'Blue', 'Green', 'Red', 'Orange', 'Yellow', 'Purple', 'Pink',
+];
 const INITIAL_USER_INDUSTRIES = [
   'Industrial Flooring', 'Office Flooring', 'Residential Flooring',
-  'School Flooring', 'Sports Flooring', 'Hotel/ Hospitality Flooring'
+  'School Flooring', 'Sports Flooring', 'Hotel/ Hospitality Flooring',
 ];
 
-// ─── Image Compression Utility ───────────────────────────────────────────────
-// Resizes the image to max 1200px on the longest side and re-encodes as JPEG
-// at 80% quality. This typically reduces a 4–8 MB photo to under 400 KB,
-// preventing Cloudinary's 499 TimeoutError on slow connections.
-const compressImage = (file, { maxDimension = 1200, quality = 0.8 } = {}) => {
-  return new Promise((resolve, reject) => {
+// ── NEW: Initial options for the 4 new fields ────────────────────────────────
+const INITIAL_THICKNESS_OPTIONS = [
+  '1.0mm', '1.5mm', '2.0mm', '2.5mm', '3.0mm', '3.5mm', '4.0mm', '5.0mm',
+];
+const INITIAL_STYLE_OPTIONS = [
+  'Homogeneous Flooring', 'Cushion Vinyl', 'Heterogeneous Flooring',
+  'SPC Flooring', 'WPC Flooring', 'Printed Vinyl',
+];
+const INITIAL_PATTERN_OPTIONS = [
+  'Non-Directional', 'Directional', 'Herringbone', 'Random', 'Linear',
+];
+
+// ─── Persistent Memory (Lives outside the modal unmount lifecycle) ────────────
+let persistentNavCategories    = [...INITIAL_NAV_CATEGORIES];
+let persistentCollections      = [...INITIAL_COLLECTIONS];
+let persistentColorFamilies    = [...INITIAL_COLOR_FAMILIES];
+let persistentShadeOptions     = [...INITIAL_SHADES];
+let persistentIndustries       = [...INITIAL_USER_INDUSTRIES];
+let persistentThicknessOptions = [...INITIAL_THICKNESS_OPTIONS]; // NEW
+let persistentStyleOptions     = [...INITIAL_STYLE_OPTIONS];     // NEW
+let persistentPatternOptions   = [...INITIAL_PATTERN_OPTIONS];   // NEW
+
+// ─── Image Compression Utility ────────────────────────────────────────────────
+const compressImage = (file, { maxDimension = 1200, quality = 0.8 } = {}) =>
+  new Promise((resolve, reject) => {
     const reader = new FileReader();
     reader.onload = (evt) => {
       const img = new Image();
       img.onload = () => {
         const { width, height } = img;
-        const ratio = Math.min(maxDimension / width, maxDimension / height, 1); // never upscale
+        const ratio = Math.min(maxDimension / width, maxDimension / height, 1);
         const canvas = document.createElement('canvas');
-        canvas.width  = Math.round(width  * ratio);
+        canvas.width = Math.round(width * ratio);
         canvas.height = Math.round(height * ratio);
-        const ctx = canvas.getContext('2d');
-        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+        canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height);
         canvas.toBlob(
           (blob) => {
             if (!blob) { reject(new Error('Canvas compression failed')); return; }
-            // Preserve original filename but force .jpg extension
-            const compressed = new File(
-              [blob],
-              file.name.replace(/\.[^.]+$/, '.jpg'),
-              { type: 'image/jpeg' }
-            );
-            resolve(compressed);
+            resolve(new File([blob], file.name.replace(/\.[^.]+$/, '.jpg'), { type: 'image/jpeg' }));
           },
           'image/jpeg',
-          quality
+          quality,
         );
       };
       img.onerror = () => reject(new Error('Failed to load image for compression'));
@@ -59,48 +70,195 @@ const compressImage = (file, { maxDimension = 1200, quality = 0.8 } = {}) => {
     reader.onerror = () => reject(new Error('FileReader failed'));
     reader.readAsDataURL(file);
   });
-};
 
-// Friendly file-size label (e.g. "1.2 MB" → "342 KB")
 const formatBytes = (bytes) => {
-  if (bytes < 1024)         return `${bytes} B`;
-  if (bytes < 1024 * 1024)  return `${(bytes / 1024).toFixed(0)} KB`;
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(0)} KB`;
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 };
 
-// ─── Component ────────────────────────────────────────────────────────────────
-export default function UploadTileModal({ onClose, onSuccess }) {
-  const [loading, setLoading]                   = useState(false);
-  const [uploadStage, setUploadStage]           = useState('');   // progress label shown while loading
-  const [error, setError]                       = useState(null);
-  const [selectedIndustries, setSelectedIndustries] = useState([]);
-  const [tilePreview, setTilePreview]           = useState(null);
-  const [tileFileMeta, setTileFileMeta]         = useState(null); // { original, compressed }
+// ─── ToggleSelectField ────────────────────────────────────────────────────────
+function ToggleSelectField({
+  label,
+  name,
+  required = true,
+  options,
+  onAddOption,
+  onRemoveOption,
+  selectPlaceholder = 'Select…',
+  createPlaceholder,
+}) {
+  const [isCustom, setIsCustom] = useState(false);
+  const [customValue, setCustomValue] = useState('');
+  const [selectedValue, setSelectedValue] = useState('');
+  const [isOpen, setIsOpen] = useState(false);
 
-  const [collections]           = useState(INITIAL_ACCORDION_CATEGORIES);
-  const [isCustomCollection, setIsCustomCollection] = useState(false);
-  const [industries, setIndustries]             = useState(INITIAL_USER_INDUSTRIES);
+  const handleToggle = () => {
+    setIsCustom((prev) => !prev);
+    setIsOpen(false);
+  };
+
+  const handleSelect = (val) => {
+    setSelectedValue(val);
+    setIsOpen(false);
+  };
+
+  const handleAddCustomInline = () => {
+    const val = customValue.trim();
+    if (val) {
+      if (!options.includes(val)) onAddOption(val);
+      setSelectedValue(val);
+      setIsCustom(false);
+      setCustomValue('');
+    }
+  };
+
+  return (
+    <div>
+      {/* Label row with toggle */}
+      <div className="flex justify-between items-center mb-1.5">
+        <label className="block text-[13px] font-semibold text-slate-600">{label}</label>
+        <button
+          type="button"
+          onClick={handleToggle}
+          className="text-xs text-[#0b9e7a] hover:text-[#098264] hover:underline font-semibold cursor-pointer transition-colors"
+        >
+          {isCustom ? 'Select Existing' : '+ Create New'}
+        </button>
+      </div>
+
+      {isCustom ? (
+        /* ── Custom text entry ── */
+        <div className="flex gap-2">
+          <input
+            type="text"
+            name={name}
+            required={required}
+            placeholder={createPlaceholder || `Enter new ${label.toLowerCase()}…`}
+            value={customValue}
+            onChange={(e) => setCustomValue(e.target.value)}
+            className="w-full bg-white border border-slate-200 rounded-lg px-4 py-2.5 text-slate-800 text-sm focus:border-[#0b9e7a] focus:ring-1 focus:ring-[#0b9e7a] focus:outline-none transition-all placeholder:text-slate-400"
+          />
+          <button
+            type="button"
+            onClick={handleAddCustomInline}
+            className="px-3 bg-slate-100 hover:bg-[#0b9e7a] text-slate-600 hover:text-white rounded-lg text-xs font-semibold transition-all cursor-pointer"
+          >
+            Add
+          </button>
+        </div>
+      ) : (
+        /* ── Custom Dropdown Menu ── */
+        <div className="relative">
+          <input type="hidden" name={name} value={selectedValue} required={required} />
+
+          <div
+            onClick={() => setIsOpen(!isOpen)}
+            className="w-full bg-white border border-slate-200 rounded-lg px-4 py-2.5 text-slate-800 text-sm focus-within:border-[#0b9e7a] focus-within:ring-1 focus-within:ring-[#0b9e7a] transition-all flex justify-between items-center cursor-pointer select-none"
+          >
+            <span className={selectedValue ? 'text-slate-800' : 'text-slate-400'}>
+              {selectedValue || selectPlaceholder}
+            </span>
+            <div className="text-slate-400">
+              <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24" className={`transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`}>
+                <path d="M19 9l-7 7-7-7" />
+              </svg>
+            </div>
+          </div>
+
+          {isOpen && (
+            <>
+              <div className="fixed inset-0 z-20" onClick={() => setIsOpen(false)}></div>
+
+              <ul className="absolute z-30 w-full mt-1 bg-white border border-slate-200 rounded-lg shadow-lg max-h-60 overflow-y-auto py-1">
+                <li
+                  onClick={() => handleSelect('')}
+                  className="px-4 py-2 text-sm text-slate-400 hover:bg-slate-50 cursor-pointer"
+                >
+                  {selectPlaceholder}
+                </li>
+                {options.map((opt) => (
+                  <li
+                    key={opt}
+                    className="group px-4 py-2 text-sm text-slate-800 hover:bg-slate-50 flex justify-between items-center cursor-pointer"
+                    onClick={() => handleSelect(opt)}
+                  >
+                    <span className="truncate flex-1">{opt}</span>
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onRemoveOption(opt);
+                        if (selectedValue === opt) setSelectedValue('');
+                      }}
+                      className="text-slate-400 hover:text-red-500 p-1 rounded hover:bg-slate-200/60 opacity-0 group-hover:opacity-100 transition-all ml-2"
+                      title={`Remove ${opt}`}
+                    >
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <line x1="18" y1="6" x2="6" y2="18" />
+                        <line x1="6" y1="6" x2="18" y2="18" />
+                      </svg>
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            </>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─── UploadTileModal ──────────────────────────────────────────────────────────
+export default function UploadTileModal({ onClose, onSuccess }) {
+  const [loading, setLoading] = useState(false);
+  const [uploadStage, setUploadStage] = useState('');
+  const [error, setError] = useState(null);
+
+  const [selectedIndustries, setSelectedIndustries] = useState([]);
+  const [tilePreview, setTilePreview] = useState(null);
+  const [tileFileMeta, setTileFileMeta] = useState(null);
+
+  // ── Persistent Synchronized Component States ────────────────────────────────
+  const [navCategories, setNavCategories]       = useState(persistentNavCategories);
+  const [collections, setCollections]           = useState(persistentCollections);
+  const [colorFamilies, setColorFamilies]       = useState(persistentColorFamilies);
+  const [shadeOptions, setShadeOptions]         = useState(persistentShadeOptions);
+  const [industries, setIndustries]             = useState(persistentIndustries);
+  const [thicknessOptions, setThicknessOptions] = useState(persistentThicknessOptions); // NEW
+  const [styleOptions, setStyleOptions]         = useState(persistentStyleOptions);     // NEW
+  const [patternOptions, setPatternOptions]     = useState(persistentPatternOptions);   // NEW
+
   const [newIndustryInput, setNewIndustryInput] = useState('');
 
-  const formRef     = useRef(null);
-  const rawFileRef  = useRef(null); // holds the raw File before compression
+  const formRef    = useRef(null);
+  const rawFileRef = useRef(null);
 
-  // ── industry helpers ──
+  // ── Industry helpers ────────────────────────────────────────────────────────
   const toggleIndustry = (industry) =>
-    setSelectedIndustries(prev =>
-      prev.includes(industry) ? prev.filter(i => i !== industry) : [...prev, industry]
+    setSelectedIndustries((prev) =>
+      prev.includes(industry) ? prev.filter((i) => i !== industry) : [...prev, industry],
     );
 
   const handleAddCustomIndustry = (e) => {
     e.preventDefault();
-    const cleanValue = newIndustryInput.trim();
-    if (!cleanValue) return;
-    if (!industries.includes(cleanValue)) setIndustries(prev => [...prev, cleanValue]);
-    if (!selectedIndustries.includes(cleanValue)) setSelectedIndustries(prev => [...prev, cleanValue]);
+    const val = newIndustryInput.trim();
+    if (!val) return;
+    if (!industries.includes(val)) {
+      setIndustries((prev) => {
+        const updated = [...prev, val];
+        persistentIndustries = updated;
+        return updated;
+      });
+    }
+    if (!selectedIndustries.includes(val)) {
+      setSelectedIndustries((prev) => [...prev, val]);
+    }
     setNewIndustryInput('');
   };
 
-  // ── tile file picker ──
+  // ── Tile file picker ────────────────────────────────────────────────────────
   const handleTileChange = (e) => {
     const file = e.target.files[0];
     if (!file) { setTilePreview(null); setTileFileMeta(null); rawFileRef.current = null; return; }
@@ -109,7 +267,7 @@ export default function UploadTileModal({ onClose, onSuccess }) {
     setTileFileMeta({ originalSize: file.size, compressedSize: null });
   };
 
-  // ── submit ──
+  // ── Submit ──────────────────────────────────────────────────────────────────
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
@@ -119,50 +277,70 @@ export default function UploadTileModal({ onClose, onSuccess }) {
       const rawFile = rawFileRef.current;
       if (!rawFile) throw new Error('No image selected');
 
-      // ── Step 1: Compress client-side ─────────────────────────────────────────
       setUploadStage('Compressing image…');
       const compressedFile = await compressImage(rawFile);
-      setTileFileMeta(prev => ({ ...prev, compressedSize: compressedFile.size }));
+      setTileFileMeta((prev) => ({ ...prev, compressedSize: compressedFile.size }));
 
-      // ── Step 2: Get a short-lived signed URL from our backend ─────────────────
-      // The signature lets us upload directly to Cloudinary without going through
-      // our server, which was causing the 499 timeout on slow connections.
       setUploadStage('Preparing upload…');
       const sigRes = await fetch(`${BASE_URL}/sign-upload?folder=wonderfloor/tiles`);
       if (!sigRes.ok) throw new Error('Could not get upload credentials');
       const { signature, timestamp, cloudName, apiKey, folder } = await sigRes.json();
 
-      // ── Step 3: Upload DIRECTLY from browser to Cloudinary ───────────────────
-      // File travels browser → Cloudinary only. Our server is never in the path.
       setUploadStage('Uploading image to Cloudinary…');
       const cloudinaryForm = new FormData();
-      cloudinaryForm.append('file',      compressedFile);
+      cloudinaryForm.append('file', compressedFile);
       cloudinaryForm.append('signature', signature);
       cloudinaryForm.append('timestamp', String(timestamp));
-      cloudinaryForm.append('api_key',   apiKey);
-      cloudinaryForm.append('folder',    folder);
+      cloudinaryForm.append('api_key', apiKey);
+      cloudinaryForm.append('folder', folder);
 
       const cloudRes = await fetch(
         `https://api.cloudinary.com/v1_1/${cloudName}/image/upload`,
-        { method: 'POST', body: cloudinaryForm }
+        { method: 'POST', body: cloudinaryForm },
       );
       const cloudData = await cloudRes.json();
       if (!cloudRes.ok) throw new Error(cloudData.error?.message || 'Cloudinary upload failed');
-      const imageUrl = cloudData.secure_url;
 
-      // ── Step 4: Save product metadata to our backend (no file, just the URL) ──
       setUploadStage('Saving product…');
       const formData = new FormData(formRef.current);
-      formData.delete('tileImage');          // don't resend the file bytes
-      formData.append('imageUrl', imageUrl); // just the Cloudinary URL
+      formData.delete('tileImage');
+      formData.append('imageUrl', cloudData.secure_url);
       formData.append('userIndustry', JSON.stringify(selectedIndustries));
 
-      const response = await fetch(`${BASE_URL}/upload/product`, {
-        method: 'POST',
-        body: formData,
-      });
+      // Format tags as JSON array
+      const rawTags = formData.get('tags');
+      if (rawTags) {
+        const tagsArray = rawTags.split(',').map(t => t.trim()).filter(Boolean);
+        formData.set('tags', JSON.stringify(tagsArray));
+      }
+
+      const response = await fetch(`${BASE_URL}/upload/product`, { method: 'POST', body: formData });
       const data = await response.json();
       if (!response.ok) throw new Error(data.error || 'Failed to save product');
+
+      // ── Backup Submit Fallback Auto-Saver ───────────────────────────────────
+      const savedNavCategory  = formData.get('navCategory');
+      const savedCollection   = formData.get('accordionCategory');
+      const savedColour       = formData.get('colour');
+      const savedShade        = formData.get('shade');
+      const savedThickness    = formData.get('thickness'); // NEW
+      const savedStyle        = formData.get('style');     // NEW
+      const savedPattern      = formData.get('pattern');   // NEW
+
+      if (savedNavCategory && !persistentNavCategories.includes(savedNavCategory))
+        persistentNavCategories = [...persistentNavCategories, savedNavCategory];
+      if (savedCollection && !persistentCollections.includes(savedCollection))
+        persistentCollections = [...persistentCollections, savedCollection];
+      if (savedColour && !persistentColorFamilies.includes(savedColour))
+        persistentColorFamilies = [...persistentColorFamilies, savedColour];
+      if (savedShade && !persistentShadeOptions.includes(savedShade))
+        persistentShadeOptions = [...persistentShadeOptions, savedShade];
+      if (savedThickness && !persistentThicknessOptions.includes(savedThickness)) // NEW
+        persistentThicknessOptions = [...persistentThicknessOptions, savedThickness];
+      if (savedStyle && !persistentStyleOptions.includes(savedStyle))             // NEW
+        persistentStyleOptions = [...persistentStyleOptions, savedStyle];
+      if (savedPattern && !persistentPatternOptions.includes(savedPattern))       // NEW
+        persistentPatternOptions = [...persistentPatternOptions, savedPattern];
 
       setLoading(false);
       if (onSuccess) onSuccess();
@@ -175,15 +353,12 @@ export default function UploadTileModal({ onClose, onSuccess }) {
     }
   };
 
-  // ── size reduction badge ──
+  // ── Size badge ──────────────────────────────────────────────────────────────
   const SizeBadge = () => {
     if (!tileFileMeta?.originalSize) return null;
     const { originalSize, compressedSize } = tileFileMeta;
-    if (!compressedSize) return (
-      <span className="text-[10px] text-slate-400 font-medium mt-0.5 block text-center">
-        {formatBytes(originalSize)}
-      </span>
-    );
+    if (!compressedSize)
+      return <span className="text-[10px] text-slate-400 font-medium mt-0.5 block text-center">{formatBytes(originalSize)}</span>;
     const savedPct = Math.round((1 - compressedSize / originalSize) * 100);
     return (
       <span className="text-[10px] font-semibold mt-0.5 block text-center text-[#0b9e7a]">
@@ -200,12 +375,18 @@ export default function UploadTileModal({ onClose, onSuccess }) {
         {/* Header */}
         <div className="flex justify-between items-center px-6 py-4 border-b border-slate-100 shrink-0">
           <h2 className="text-lg font-semibold text-slate-800">Add New Tile Product</h2>
-          <button onClick={onClose} className="text-slate-400 hover:text-slate-600 transition-colors cursor-pointer p-1 rounded-lg hover:bg-slate-50">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+          <button
+            onClick={onClose}
+            className="text-slate-400 hover:text-slate-600 transition-colors cursor-pointer p-1 rounded-lg hover:bg-slate-50"
+          >
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <line x1="18" y1="6" x2="6" y2="18" />
+              <line x1="6" y1="6" x2="18" y2="18" />
+            </svg>
           </button>
         </div>
 
-        {/* Form Body */}
+        {/* Form body */}
         <form ref={formRef} onSubmit={handleSubmit} className="overflow-y-auto p-6 flex flex-col gap-6 bg-slate-50/50">
 
           {error && (
@@ -214,110 +395,195 @@ export default function UploadTileModal({ onClose, onSuccess }) {
             </div>
           )}
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-            <div>
-              <label className="block text-[13px] font-semibold text-slate-600 mb-1.5">Product Name</label>
-              <input type="text" name="name" required placeholder="e.g., Pastel Mint" className="w-full bg-white border border-slate-200 rounded-lg px-4 py-2.5 text-slate-800 text-sm focus:border-[#0b9e7a] focus:ring-1 focus:ring-[#0b9e7a] focus:outline-none transition-all placeholder:text-slate-400" />
-            </div>
+          {/* ── Section: Core Identity ── */}
+          <div>
+            <p className="text-[11px] font-bold uppercase tracking-widest text-slate-400 mb-3">Core Details</p>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
 
-            <div>
-              <label className="block text-[13px] font-semibold text-slate-600 mb-1.5">SKU Code</label>
-              <input type="text" name="sku" required placeholder="e.g., WF/KR/0010" className="w-full bg-white border border-slate-200 rounded-lg px-4 py-2.5 text-slate-800 text-sm focus:border-[#0b9e7a] focus:ring-1 focus:ring-[#0b9e7a] focus:outline-none transition-all uppercase placeholder:text-slate-400" />
-            </div>
-
-            <div>
-              <label className="block text-[13px] font-semibold text-slate-600 mb-1.5">Physical Size</label>
-              <input type="text" name="size" required placeholder="e.g., 2mtr x 15mtr (Roll)" className="w-full bg-white border border-slate-200 rounded-lg px-4 py-2.5 text-slate-800 text-sm focus:border-[#0b9e7a] focus:ring-1 focus:ring-[#0b9e7a] focus:outline-none transition-all placeholder:text-slate-400" />
-            </div>
-
-            <div>
-              <label className="block text-[13px] font-semibold text-slate-600 mb-1.5">Main Nav Category</label>
-              <div className="relative">
-                <select name="navCategory" required className="w-full bg-white border border-slate-200 rounded-lg px-4 py-2.5 text-slate-800 text-sm focus:border-[#0b9e7a] focus:ring-1 focus:ring-[#0b9e7a] focus:outline-none transition-all appearance-none cursor-pointer">
-                  <option value="">Select tab...</option>
-                  {NAV_CATEGORIES.map(cat => <option key={cat.id} value={cat.id}>{cat.label}</option>)}
-                </select>
-                <div className="absolute inset-y-0 right-0 flex items-center pr-4 pointer-events-none text-slate-400">
-                  <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M19 9l-7 7-7-7"/></svg>
-                </div>
-              </div>
-            </div>
-
-            {/* Collection Input Controller */}
-            <div>
-              <div className="flex justify-between items-center mb-1.5">
-                <label className="block text-[13px] font-semibold text-slate-600">Product Collection</label>
-                <button
-                  type="button"
-                  onClick={() => setIsCustomCollection(!isCustomCollection)}
-                  className="text-xs text-[#0b9e7a] hover:text-[#098264] hover:underline font-semibold cursor-pointer transition-colors"
-                >
-                  {isCustomCollection ? "Select Existing" : "+ Create New"}
-                </button>
-              </div>
-
-              {isCustomCollection ? (
+              {/* Product Name */}
+              <div>
+                <label className="block text-[13px] font-semibold text-slate-600 mb-1.5">Product Name</label>
                 <input
-                  type="text"
-                  name="accordionCategory"
-                  required
-                  placeholder="Enter new collection name"
+                  type="text" name="name" required
+                  placeholder="e.g., Pastel Mint"
                   className="w-full bg-white border border-slate-200 rounded-lg px-4 py-2.5 text-slate-800 text-sm focus:border-[#0b9e7a] focus:ring-1 focus:ring-[#0b9e7a] focus:outline-none transition-all placeholder:text-slate-400"
                 />
-              ) : (
-                <div className="relative">
-                  <select name="accordionCategory" required className="w-full bg-white border border-slate-200 rounded-lg px-4 py-2.5 text-slate-800 text-sm focus:border-[#0b9e7a] focus:ring-1 focus:ring-[#0b9e7a] focus:outline-none transition-all appearance-none cursor-pointer">
-                    <option value="">Select collection...</option>
-                    {collections.map(cat => <option key={cat} value={cat}>{cat}</option>)}
-                  </select>
-                  <div className="absolute inset-y-0 right-0 flex items-center pr-4 pointer-events-none text-slate-400">
-                    <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M19 9l-7 7-7-7"/></svg>
-                  </div>
-                </div>
-              )}
-            </div>
+              </div>
 
-            <div className="grid grid-cols-2 gap-3">
+              {/* SKU */}
               <div>
-                <label className="block text-[13px] font-semibold text-slate-600 mb-1.5">Color</label>
-                <div className="relative">
-                  <select name="colour" required className="w-full bg-white border border-slate-200 rounded-lg px-3 py-2.5 text-slate-800 text-sm focus:border-[#0b9e7a] focus:outline-none appearance-none cursor-pointer">
-                    <option value="">Select...</option>
-                    {COLOR_FAMILIES.map(c => <option key={c} value={c}>{c}</option>)}
-                  </select>
-                  <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none text-slate-400">
-                    <svg width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M19 9l-7 7-7-7"/></svg>
-                  </div>
-                </div>
+                <label className="block text-[13px] font-semibold text-slate-600 mb-1.5">SKU Code</label>
+                <input
+                  type="text" name="sku" required
+                  placeholder="e.g., WF/KR/0010"
+                  className="w-full bg-white border border-slate-200 rounded-lg px-4 py-2.5 text-slate-800 text-sm focus:border-[#0b9e7a] focus:ring-1 focus:ring-[#0b9e7a] focus:outline-none transition-all uppercase placeholder:text-slate-400"
+                />
               </div>
+
+              {/* Physical Size */}
               <div>
-                <label className="block text-[13px] font-semibold text-slate-600 mb-1.5">Shade</label>
-                <div className="relative">
-                  <select name="shade" required className="w-full bg-white border border-slate-200 rounded-lg px-3 py-2.5 text-slate-800 text-sm focus:border-[#0b9e7a] focus:outline-none appearance-none cursor-pointer">
-                    <option value="">Select...</option>
-                    {SHADES.map(s => <option key={s} value={s}>{s}</option>)}
-                  </select>
-                  <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none text-slate-400">
-                    <svg width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M19 9l-7 7-7-7"/></svg>
-                  </div>
-                </div>
+                <label className="block text-[13px] font-semibold text-slate-600 mb-1.5">Physical Size</label>
+                <input
+                  type="text" name="size" required
+                  placeholder="e.g., 2mtr x 15mtr (Roll)"
+                  className="w-full bg-white border border-slate-200 rounded-lg px-4 py-2.5 text-slate-800 text-sm focus:border-[#0b9e7a] focus:ring-1 focus:ring-[#0b9e7a] focus:outline-none transition-all placeholder:text-slate-400"
+                />
               </div>
+
+              {/* Searchable Tags — full width */}
+              <div className="md:col-span-2 lg:col-span-3">
+                <label className="block text-[13px] font-semibold text-slate-600 mb-1.5">Searchable Tags (Comma Separated)</label>
+                <input
+                  type="text" name="tags"
+                  placeholder="e.g., mint, dark green, eco-friendly, pastel"
+                  className="w-full bg-white border border-slate-200 rounded-lg px-4 py-2.5 text-slate-800 text-sm focus:border-[#0b9e7a] focus:ring-1 focus:ring-[#0b9e7a] focus:outline-none transition-all placeholder:text-slate-400"
+                />
+                <span className="text-[10px] text-slate-400 mt-1 block">
+                  Add alternate names or keywords to help users find this tile in search.
+                </span>
+              </div>
+
             </div>
           </div>
 
-          {/* Recommended Industries */}
+          {/* ── Section: Classification ── */}
           <div>
-            <label className="block text-[13px] font-semibold text-slate-600 mb-2">Recommended Industries</label>
+            <p className="text-[11px] font-bold uppercase tracking-widest text-slate-400 mb-3">Classification</p>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+
+              <ToggleSelectField
+                label="Main Nav Category"
+                name="navCategory"
+                options={navCategories}
+                onAddOption={(val) => setNavCategories((prev) => { const u = [...prev, val]; persistentNavCategories = u; return u; })}
+                onRemoveOption={(val) => setNavCategories((prev) => { const u = prev.filter(i => i !== val); persistentNavCategories = u; return u; })}
+                selectPlaceholder="Select tab…"
+                createPlaceholder="e.g., Outdoor Flooring"
+              />
+
+              <ToggleSelectField
+                label="Product Collection"
+                name="accordionCategory"
+                options={collections}
+                onAddOption={(val) => setCollections((prev) => { const u = [...prev, val]; persistentCollections = u; return u; })}
+                onRemoveOption={(val) => setCollections((prev) => { const u = prev.filter(i => i !== val); persistentCollections = u; return u; })}
+                selectPlaceholder="Select collection…"
+                createPlaceholder="Enter new collection name"
+              />
+
+              <ToggleSelectField
+                label="Color"
+                name="colour"
+                options={colorFamilies}
+                onAddOption={(val) => setColorFamilies((prev) => { const u = [...prev, val]; persistentColorFamilies = u; return u; })}
+                onRemoveOption={(val) => setColorFamilies((prev) => { const u = prev.filter(i => i !== val); persistentColorFamilies = u; return u; })}
+                selectPlaceholder="Select color…"
+                createPlaceholder="e.g., Terra Cotta"
+              />
+
+              <ToggleSelectField
+                label="Shade"
+                name="shade"
+                options={shadeOptions}
+                onAddOption={(val) => setShadeOptions((prev) => { const u = [...prev, val]; persistentShadeOptions = u; return u; })}
+                onRemoveOption={(val) => setShadeOptions((prev) => { const u = prev.filter(i => i !== val); persistentShadeOptions = u; return u; })}
+                selectPlaceholder="Select shade…"
+                createPlaceholder="e.g., Extra Dark"
+              />
+
+              {/* ── NEW: Thickness ── */}
+              <ToggleSelectField
+                label="Thickness"
+                name="thickness"
+                required={false}
+                options={thicknessOptions}
+                onAddOption={(val) => setThicknessOptions((prev) => { const u = [...prev, val]; persistentThicknessOptions = u; return u; })}
+                onRemoveOption={(val) => setThicknessOptions((prev) => { const u = prev.filter(i => i !== val); persistentThicknessOptions = u; return u; })}
+                selectPlaceholder="Select thickness…"
+                createPlaceholder="e.g., 2.5mm or 1.0mm, 2.0mm"
+              />
+
+              {/* ── NEW: Style ── */}
+              <ToggleSelectField
+                label="Style"
+                name="style"
+                required={false}
+                options={styleOptions}
+                onAddOption={(val) => setStyleOptions((prev) => { const u = [...prev, val]; persistentStyleOptions = u; return u; })}
+                onRemoveOption={(val) => setStyleOptions((prev) => { const u = prev.filter(i => i !== val); persistentStyleOptions = u; return u; })}
+                selectPlaceholder="Select style…"
+                createPlaceholder="e.g., Cushion Vinyl"
+              />
+
+              {/* ── NEW: Pattern / Layout ── */}
+              <ToggleSelectField
+                label="Pattern / Layout"
+                name="pattern"
+                required={false}
+                options={patternOptions}
+                onAddOption={(val) => setPatternOptions((prev) => { const u = [...prev, val]; persistentPatternOptions = u; return u; })}
+                onRemoveOption={(val) => setPatternOptions((prev) => { const u = prev.filter(i => i !== val); persistentPatternOptions = u; return u; })}
+                selectPlaceholder="Select pattern…"
+                createPlaceholder="e.g., Directional"
+              />
+
+              {/* ── NEW: Product Link — full width ── */}
+              <div className="md:col-span-2 lg:col-span-3">
+                <label className="block text-[13px] font-semibold text-slate-600 mb-1.5">Product Link</label>
+                <div className="relative">
+                  <span className="absolute inset-y-0 left-3.5 flex items-center pointer-events-none text-slate-400">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" />
+                      <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" />
+                    </svg>
+                  </span>
+                  <input
+                    type="url" name="productLink"
+                    placeholder="https://example.com/product-page"
+                    className="w-full bg-white border border-slate-200 rounded-lg pl-9 pr-4 py-2.5 text-slate-800 text-sm focus:border-[#0b9e7a] focus:ring-1 focus:ring-[#0b9e7a] focus:outline-none transition-all placeholder:text-slate-400"
+                  />
+                </div>
+                <span className="text-[10px] text-slate-400 mt-1 block">
+                  Optional URL to a product datasheet, catalogue page, or external listing.
+                </span>
+              </div>
+
+            </div>
+          </div>
+
+          {/* ── Recommended Industries ── */}
+          <div>
+            <p className="text-[11px] font-bold uppercase tracking-widest text-slate-400 mb-3">Recommended Industries</p>
             <div className="bg-white border border-slate-200 rounded-lg p-4 shadow-sm flex flex-col gap-4">
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-                {industries.map(ind => (
-                  <label key={ind} className="flex items-center gap-2.5 cursor-pointer group py-1">
-                    <input type="checkbox" className="hidden" checked={selectedIndustries.includes(ind)} onChange={() => toggleIndustry(ind)} />
-                    <div className={`w-4 h-4 rounded flex items-center justify-center border transition-all ${selectedIndustries.includes(ind) ? 'bg-[#0b9e7a] border-[#0b9e7a]' : 'bg-slate-50 border-slate-300 group-hover:border-slate-400'}`}>
-                      {selectedIndustries.includes(ind) && <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3"><polyline points="20 6 9 17 4 12" /></svg>}
-                    </div>
-                    <span className="text-xs font-medium text-slate-600 group-hover:text-slate-900 transition-colors truncate">{ind}</span>
-                  </label>
+                {industries.map((ind) => (
+                  <div key={ind} className="relative group flex items-center justify-between py-1 px-2 border border-transparent hover:border-slate-100 rounded-lg transition-all">
+                    <label className="flex items-center gap-2.5 cursor-pointer flex-1 min-w-0">
+                      <input type="checkbox" className="hidden" checked={selectedIndustries.includes(ind)} onChange={() => toggleIndustry(ind)} />
+                      <div className={`w-4 h-4 rounded flex items-center justify-center border shrink-0 transition-all ${selectedIndustries.includes(ind) ? 'bg-[#0b9e7a] border-[#0b9e7a]' : 'bg-slate-50 border-slate-300 group-hover:border-slate-400'}`}>
+                        {selectedIndustries.includes(ind) && (
+                          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3">
+                            <polyline points="20 6 9 17 4 12" />
+                          </svg>
+                        )}
+                      </div>
+                      <span className="text-xs font-medium text-slate-600 group-hover:text-slate-900 transition-colors truncate pr-4">{ind}</span>
+                    </label>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIndustries((prev) => { const u = prev.filter(i => i !== ind); persistentIndustries = u; return u; });
+                        setSelectedIndustries((prev) => prev.filter(i => i !== ind));
+                      }}
+                      className="text-slate-400 hover:text-red-500 p-0.5 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap"
+                      title={`Remove ${ind}`}
+                    >
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <line x1="18" y1="6" x2="6" y2="18" />
+                        <line x1="6" y1="6" x2="18" y2="18" />
+                      </svg>
+                    </button>
+                  </div>
                 ))}
               </div>
 
@@ -340,47 +606,56 @@ export default function UploadTileModal({ onClose, onSuccess }) {
             </div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-            <div>
-              <label className="block text-[13px] font-semibold text-slate-600 mb-1.5">Product Description</label>
-              <textarea name="description" rows="5" placeholder="Enter product description for the details modal..." className="w-full h-32 bg-white border border-slate-200 rounded-xl px-4 py-3 text-slate-800 text-sm focus:border-[#0b9e7a] focus:ring-1 focus:ring-[#0b9e7a] focus:outline-none transition-all resize-none placeholder:text-slate-400 shadow-sm"></textarea>
-            </div>
-
-            <div>
-              <label className="block text-[13px] font-semibold text-slate-600 mb-1.5">Tile Texture Image (JPG/PNG)</label>
-              <div className="relative w-full h-32 bg-white border-2 border-dashed border-slate-200 hover:border-[#0b9e7a] rounded-xl flex items-center justify-center overflow-hidden transition-all group cursor-pointer shadow-sm">
-                {/* Hidden file input — NOT named "tileImage" so it won't go into FormData;
-                    the compressed blob is injected manually in handleSubmit instead */}
-                <input
-                  type="file"
-                  accept="image/*"
-                  required
-                  onChange={handleTileChange}
-                  className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-20"
+          {/* ── Description + Texture ── */}
+          <div>
+            <p className="text-[11px] font-bold uppercase tracking-widest text-slate-400 mb-3">Media & Description</p>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+              <div>
+                <label className="block text-[13px] font-semibold text-slate-600 mb-1.5">Product Description</label>
+                <textarea
+                  name="description" rows="5"
+                  placeholder="Enter product description for the details modal..."
+                  className="w-full h-32 bg-white border border-slate-200 rounded-xl px-4 py-3 text-slate-800 text-sm focus:border-[#0b9e7a] focus:ring-1 focus:ring-[#0b9e7a] focus:outline-none transition-all resize-none placeholder:text-slate-400 shadow-sm"
                 />
-
-                {tilePreview ? (
-                  <>
-                    <img src={tilePreview} alt="Tile Texture Preview" className="w-full h-full object-cover" />
-                    <div className="absolute inset-0 bg-slate-900/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity z-10">
-                      <span className="text-slate-800 text-xs font-semibold bg-white px-3 py-1.5 rounded-md shadow-md">Change Texture</span>
-                    </div>
-                  </>
-                ) : (
-                  <div className="flex flex-col items-center pointer-events-none text-slate-400 group-hover:text-[#0b9e7a] transition-colors">
-                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="mb-2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
-                    <span className="text-xs font-medium">Upload seamless texture</span>
-                  </div>
-                )}
               </div>
-              {/* Size reduction badge shown below the uploader */}
-              <SizeBadge />
+
+              <div>
+                <label className="block text-[13px] font-semibold text-slate-600 mb-1.5">Tile Texture Image (JPG/PNG)</label>
+                <div className="relative w-full h-32 bg-white border-2 border-dashed border-slate-200 hover:border-[#0b9e7a] rounded-xl flex items-center justify-center overflow-hidden transition-all group cursor-pointer shadow-sm">
+                  <input
+                    type="file" accept="image/*" required
+                    onChange={handleTileChange}
+                    className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-20"
+                  />
+                  {tilePreview ? (
+                    <>
+                      <img src={tilePreview} alt="Tile Texture Preview" className="w-full h-full object-cover" />
+                      <div className="absolute inset-0 bg-slate-900/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity z-10">
+                        <span className="text-slate-800 text-xs font-semibold bg-white px-3 py-1.5 rounded-md shadow-md">Change Texture</span>
+                      </div>
+                    </>
+                  ) : (
+                    <div className="flex flex-col items-center pointer-events-none text-slate-400 group-hover:text-[#0b9e7a] transition-colors">
+                      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="mb-2">
+                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                        <polyline points="17 8 12 3 7 8" />
+                        <line x1="12" y1="3" x2="12" y2="15" />
+                      </svg>
+                      <span className="text-xs font-medium">Upload seamless texture</span>
+                    </div>
+                  )}
+                </div>
+                <SizeBadge />
+              </div>
             </div>
           </div>
 
-          {/* Footer */}
+          {/* ── Footer Actions ── */}
           <div className="flex justify-end gap-3 pt-4 border-t border-slate-200 mt-2 shrink-0">
-            <button type="button" onClick={onClose} className="px-5 py-2.5 rounded-lg text-[13px] font-semibold text-slate-500 hover:text-slate-800 hover:bg-slate-100 transition-colors cursor-pointer">
+            <button
+              type="button" onClick={onClose}
+              className="px-5 py-2.5 rounded-lg text-[13px] font-semibold text-slate-500 hover:text-slate-800 hover:bg-slate-100 transition-colors cursor-pointer"
+            >
               Cancel
             </button>
             <button
@@ -400,6 +675,7 @@ export default function UploadTileModal({ onClose, onSuccess }) {
               )}
             </button>
           </div>
+
         </form>
       </div>
     </div>

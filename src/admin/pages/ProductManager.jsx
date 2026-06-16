@@ -6,6 +6,7 @@ import BulkUploadModal from '../components/BulkUploadTile';
 import ProductDetailModal from './ProductDetailModal';
 import VisibilityToggle from '../components/VisibilityToggle';
 import DeleteProductModal from '../components/DeleteProductModal';
+import { useSearch } from '../components/SearchContext'; // <-- Import the search context hook
 /* ─── icons ──────────────────────────────────────────────────────── */
 const Icon = {
   grid: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><rect x="3" y="3" width="7" height="7" /><rect x="14" y="3" width="7" height="7" /><rect x="14" y="14" width="7" height="7" /><rect x="3" y="14" width="7" height="7" /></svg>,
@@ -21,13 +22,14 @@ const Icon = {
   edit: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" /><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" /></svg>,
   trash: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="3 6 5 6 21 6" /><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" /><line x1="10" y1="11" x2="10" y2="17" /><line x1="14" y1="11" x2="14" y2="17" /></svg>,
   bulk: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /><polyline points="14 2 14 8 20 8" /><line x1="16" y1="13" x2="8" y2="13" /><line x1="16" y1="17" x2="8" y2="17" /><polyline points="10 9 9 9 8 9" /></svg>,
+   logout: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>,
 };
 
 const navItems = [
-  { label: 'Overview', icon: 'grid', key: 'overview', path: '/admin', group: null },
-  { label: 'Room images', icon: 'photo', key: 'rooms', path: '/admin/rooms', group: 'MANAGE' },
-  { label: 'Tile products', icon: 'stack', key: 'products', path: '/admin/products', group: null },
-  { label: 'Admin users', icon: 'users', key: 'users', path: '/admin/sidebar', group: 'SETTINGS' },
+  { label: 'Dashboard Overview', icon: 'grid', key: 'overview', path: '/admin', group: null },
+  { label: 'Demo Rooms', icon: 'photo', key: 'rooms', path: '/admin/rooms', group: 'MANAGE' },
+  { label: 'Flooring Products', icon: 'stack', key: 'products', path: '/admin/products', group: null },
+  // { label: 'Admin users', icon: 'users', key: 'users', path: '/admin/sidebar', group: 'SETTINGS' },
   { label: 'Settings', icon: 'settings', key: 'settings', path: '/admin/settings', group: null },
 ];
 
@@ -37,16 +39,19 @@ const BASE_URL = import.meta.env.VITE_NODE_BACKEND_URL || 'http://localhost:8000
    MAIN COMPONENT
 ═══════════════════════════════════════════════════════════════════ */
 export default function ProductManager() {
+  const { searchQuery, setSearchQuery } = useSearch();
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [activeType, setActiveType] = useState('All');
-  const [searchQuery, setSearchQuery] = useState('');
+
   const [selectedCollection, setSelectedCollection] = useState(null);
   const [isTileModalOpen, setIsTileModalOpen] = useState(false);
   const [isBulkModalOpen, setIsBulkModalOpen] = useState(false);
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
   const [viewMode, setViewMode] = useState('list');
 
+  const [editingCollection, setEditingCollection] = useState(null);
+  const [editingValue, setEditingValue] = useState('');
 
   // detail modal state — id + which mode to open in
   const [detailProductId, setDetailProductId] = useState(null);
@@ -56,12 +61,39 @@ export default function ProductManager() {
   const navigate = useNavigate();
   const location = useLocation();
   const activePage = navItems.find(item => item.path === location.pathname)?.key || 'products';
-  const types = ['All', 'Flooring Products', 'Luxury Vinyl Tile'];
+  const types = [
+    { label: 'All Products', value: 'All' },
+    { label: 'View by Collection- General', value: 'Flooring Products' },
+    { label: 'View by Collection - LVT', value: 'Luxury Vinyl Tile' }
+  ];
 
   /* ── helpers to open the detail modal ── */
   function openDetail(id) { setDetailProductId(id); setDetailMode('view'); }
   function openEdit(id, e) { e?.stopPropagation(); setDetailProductId(id); setDetailMode('edit'); }
   function closeDetail() { setDetailProductId(null); setDetailMode('view'); }
+
+  async function handleRenameCollection(oldName, newName) {
+    const trimmed = newName.trim();
+    setEditingCollection(null);
+    if (!trimmed || trimmed === oldName) return;
+
+    const colProducts = products.filter(p => p.accordionCategory === oldName);
+    await Promise.all(
+      colProducts.map(p =>
+        fetch(`${BASE_URL}/products/${p._id}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ accordionCategory: trimmed }),
+        })
+      )
+    );
+    // Optimistic local update — no full refetch needed
+    setProducts(prev =>
+      prev.map(p =>
+        p.accordionCategory === oldName ? { ...p, accordionCategory: trimmed } : p
+      )
+    );
+  }
 
   /* ── data fetching ── */
   async function fetchProductsData() {
@@ -94,11 +126,30 @@ export default function ProductManager() {
     .filter(p => p.accordionCategory === col)
     .every(p => p.isVisible !== false);
 
+
+  /* ── derived data ── */
   const filteredProducts = products.filter(p => {
+    // 1. Category tab filtering
     const matchType = activeType === 'All' || p.navCategory === activeType;
-    const matchCollection = !selectedCollection || p.accordionCategory === selectedCollection;
+
+    // 2. Dropdown collection filtering
+    const matchCollection = searchQuery ? true : (!selectedCollection || p.accordionCategory === selectedCollection);
+
+    // 3. Comprehensive Global search query filtering
     const q = searchQuery.toLowerCase();
-    const matchSearch = (p.name?.toLowerCase().includes(q)) || (p.sku?.toLowerCase().includes(q));
+    const matchSearch =
+      (p.name?.toLowerCase().includes(q)) ||
+      (p.sku?.toLowerCase().includes(q)) ||
+      (p.navCategory?.toLowerCase().includes(q)) ||
+      (p.accordionCategory?.toLowerCase().includes(q)) ||
+      (p.size?.toLowerCase().includes(q)) ||
+      (p.colour?.toLowerCase().includes(q)) ||
+      (p.shade?.toLowerCase().includes(q)) ||
+      (Array.isArray(p.userIndustry) && p.userIndustry.some(industry => industry?.toLowerCase().includes(q))) ||
+      // NEW: Check if the search query matches any custom searchable tags
+      (Array.isArray(p.tags) && p.tags.some(tag => tag?.toLowerCase().includes(q))) ||
+      (typeof p.tags === 'string' && p.tags.toLowerCase().includes(q));
+
     return matchType && matchCollection && matchSearch;
   });
 
@@ -130,8 +181,12 @@ export default function ProductManager() {
       `}>
         <div className="px-5 pt-5 pb-[18px] border-b border-[#e8e8e8] flex justify-between items-center">
           <div>
-            <div className="text-[17px] font-semibold text-[#111111] tracking-tight">Wonderfloor</div>
-            <div className="text-xs text-[#aaaaaa] mt-0.5">Admin panel</div>
+            <div className="text-[17px] font-semibold text-[#111111] tracking-tight"> <img
+              src="https://www.wonderfloor.co.in/assets/img/logo/logo.png"
+              alt="Logo"
+              className="h-8 max-w-[150px] md:max-w-[180px] object-contain"
+            /></div>
+            {/* <div className="text-xs text-[#aaaaaa] mt-0.5">Admin panel</div> */}
           </div>
           <button
             onClick={() => setIsMobileSidebarOpen(false)}
@@ -173,9 +228,20 @@ export default function ProductManager() {
           })}
         </nav>
 
-        <div className="px-5 pt-3.5 pb-[18px] border-t border-[#e8e8e8]">
-          <div className="text-[11px] text-[#aaaaaa]">Logged in as</div>
-          <div className="text-[13px] font-medium text-[#333333] mt-0.5">Admin</div>
+       <div className="px-5 pt-3.5 pb-[18px] border-t border-[#e8e8e8] flex justify-between items-center">
+          <div>
+            <div className="text-[11px] text-[#aaaaaa]">Logged in as</div>
+            <div className="text-[13px] font-medium text-[#333333] mt-0.5">Admin</div>
+          </div>
+
+          {/* 👇 YOUR LOGOUT BUTTON 👇 */}
+          <button
+            onClick={() => navigate('/admin/logout')}
+            className="text-[#888888] hover:text-red-500 transition-colors p-2 rounded-md hover:bg-red-50 cursor-pointer"
+            title="Log Out"
+          >
+            {Icon.logout}
+          </button>
         </div>
       </aside>
 
@@ -236,7 +302,7 @@ export default function ProductManager() {
                          whitespace-nowrap shadow-sm shrink-0"
             >
               {Icon.plus}
-              <span className="hidden sm:inline">Add Product</span>
+              <span className="hidden sm:inline">Add Flooring Product</span>
             </button>
           </div>
         </header>
@@ -246,17 +312,17 @@ export default function ProductManager() {
 
           {/* type filter pills */}
           <div className="flex flex-wrap gap-2 mb-6">
-            {types.map(type => (
+            {types.map(typeObj => (
               <button
-                key={type}
-                onClick={() => { setActiveType(type); setSelectedCollection(null); }}
+                key={typeObj.value}
+                onClick={() => { setActiveType(typeObj.value); setSelectedCollection(null); }}
                 className={`px-3 md:px-4 py-1.5 rounded-full text-xs md:text-sm font-medium
-                            transition-all duration-150 cursor-pointer
-                            ${activeType === type
+                 transition-all duration-150 cursor-pointer
+                 ${activeType === typeObj.value
                     ? 'bg-[#0b9e7a] text-white border border-[#0b9e7a] shadow-sm'
                     : 'bg-white border border-[#e0e0e0] text-[#666666] hover:border-[#aaaaaa] hover:text-[#111111]'}`}
               >
-                {type}
+                {typeObj.label}
               </button>
             ))}
           </div>
@@ -270,7 +336,7 @@ export default function ProductManager() {
                     className="cursor-pointer hover:text-[#0b9e7a] transition-colors"
                     onClick={() => setSelectedCollection(null)}
                   >
-                    {activeType}
+                    {types.find(t => t.value === activeType)?.label || activeType}
                   </span>
                   <span className="text-gray-300">/</span>
                   <span className="text-gray-800 font-semibold">{selectedCollection}</span>
@@ -319,17 +385,15 @@ export default function ProductManager() {
 
           {/* ── content states ── */}
           {loading ? (
-            <div className="text-center py-24 text-[#aaaaaa] text-sm bg-white rounded-xl
-                            border border-[#e8e8e8] mx-2">
-              <svg className="mx-auto mb-3 opacity-30 animate-spin" width="24" height="24"
-                viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+            <div className="text-center py-24 text-[#aaaaaa] text-sm bg-white rounded-xl border border-[#e8e8e8] mx-2">
+              <svg className="mx-auto mb-3 opacity-30 animate-spin" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
                 <path d="M21 12a9 9 0 1 1-6.219-8.56" />
               </svg>
               Syncing database asset structures…
             </div>
 
-            /* collection grid (type selected, no collection drilled in) */
-          ) : activeType !== 'All' && !selectedCollection ? (
+            /* collection grid (type selected, no collection drilled in, and NO active search) */
+          ) : activeType !== 'All' && !selectedCollection && !searchQuery ? (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 md:gap-5">
               {uniqueCollections.map(col => {
                 const colVisible = isCollectionVisible(col);
@@ -338,9 +402,7 @@ export default function ProductManager() {
                   <div
                     key={col}
                     onClick={() => setSelectedCollection(col)}
-                    className="bg-white border border-[#e8e8e8] rounded-xl overflow-hidden flex flex-col
-                               group shadow-sm hover:shadow-md transition-all duration-200 cursor-pointer
-                               hover:-translate-y-0.5"
+                    className="bg-white border border-[#e8e8e8] rounded-xl overflow-hidden flex flex-col group shadow-sm hover:shadow-md transition-all duration-200 cursor-pointer hover:-translate-y-0.5"
                   >
                     <div className="h-32 w-full overflow-hidden bg-[#fafafa] border-b border-[#f0f0f0] relative">
                       <img
@@ -348,14 +410,8 @@ export default function ProductManager() {
                         className="w-full h-full object-cover opacity-85 group-hover:opacity-100 transition-all duration-300"
                         onError={e => { e.target.src = 'https://placehold.co/300x200?text=Folder'; }}
                       />
-                      <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent
-                                      opacity-0 group-hover:opacity-100 transition-opacity" />
-                      {/* visibility toggle */}
-                      <div
-                        className="absolute top-2 right-2 z-10 flex items-center gap-1.5 bg-white/90
-                                   backdrop-blur-sm px-2 py-1 rounded-full shadow-sm border border-gray-200"
-                        onClick={e => e.stopPropagation()}
-                      >
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+                      <div className="absolute top-2 right-2 z-10 flex items-center gap-1.5 bg-white/90 backdrop-blur-sm px-2 py-1 rounded-full shadow-sm border border-gray-200" onClick={e => e.stopPropagation()}>
                         <span className={`text-[10px] font-semibold ${colVisible ? 'text-[#0b9e7a]' : 'text-gray-400'}`}>
                           {colVisible ? 'Live' : 'Hidden'}
                         </span>
@@ -363,35 +419,58 @@ export default function ProductManager() {
                           onClick={async e => {
                             e.stopPropagation();
                             const next = !colVisible;
-                            await Promise.all(
-                              colProducts.map(p =>
-                                fetch(`${BASE_URL}/products/${p._id}/visibility`, { method: 'PATCH' })
-                              )
-                            );
-                            setProducts(prev =>
-                              prev.map(p => p.accordionCategory === col ? { ...p, isVisible: next } : p)
-                            );
+                            await Promise.all(colProducts.map(p => fetch(`${BASE_URL}/products/${p._id}/visibility`, { method: 'PATCH' })));
+                            setProducts(prev => prev.map(p => p.accordionCategory === col ? { ...p, isVisible: next } : p));
                           }}
-                          className={`relative inline-flex h-5 w-9 shrink-0 items-center rounded-full
-                                      border-2 transition-colors duration-200 cursor-pointer focus:outline-none
-                                      ${colVisible ? 'bg-[#0b9e7a] border-[#0b9e7a]' : 'bg-gray-300 border-gray-300'}`}
+                          className={`relative inline-flex h-5 w-9 shrink-0 items-center rounded-full border-2 transition-colors duration-200 cursor-pointer focus:outline-none ${colVisible ? 'bg-[#0b9e7a] border-[#0b9e7a]' : 'bg-gray-300 border-gray-300'}`}
                         >
-                          <span className={`inline-block h-3 w-3 rounded-full bg-white shadow
-                                           transition-transform duration-200
-                                           ${colVisible ? 'translate-x-4' : 'translate-x-0.5'}`} />
+                          <span className={`inline-block h-3 w-3 rounded-full bg-white shadow transition-transform duration-200 ${colVisible ? 'translate-x-4' : 'translate-x-0.5'}`} />
                         </button>
                       </div>
                     </div>
                     <div className="p-4 flex items-center justify-between bg-white">
-                      <h3 className="text-[14px] font-bold text-gray-800 tracking-tight
-                                     group-hover:text-[#0b9e7a] transition-colors truncate pr-2">
-                        {col}
-                      </h3>
-                      <span className="shrink-0 text-[11px] font-semibold px-2.5 py-0.5 bg-gray-100
-                                       text-gray-500 rounded-full group-hover:bg-[#edf9f5]
-                                       group-hover:text-[#0b9e7a] transition-colors">
-                        {getCollectionItemCount(col)}
-                      </span>
+
+                      {/* ── Inline editable name ── */}
+                      {editingCollection === col ? (
+                        <input
+                          autoFocus
+                          value={editingValue}
+                          onChange={e => setEditingValue(e.target.value)}
+                          onBlur={() => handleRenameCollection(col, editingValue)}
+                          onKeyDown={e => {
+                            if (e.key === 'Enter') handleRenameCollection(col, editingValue);
+                            if (e.key === 'Escape') setEditingCollection(null);
+                          }}
+                          onClick={e => e.stopPropagation()}  // don't drill into collection
+                          className="text-[14px] font-bold text-gray-800 tracking-tight border-b-2
+                 border-[#0b9e7a] focus:outline-none bg-transparent w-full pr-2"
+                        />
+                      ) : (
+                        <h3 className="text-[14px] font-bold text-gray-800 tracking-tight
+                   group-hover:text-[#0b9e7a] transition-colors truncate pr-2">
+                          {col}
+                        </h3>
+                      )}
+
+                      {/* ── Count badge + edit pencil ── */}
+                      <div className="flex items-center gap-1.5 shrink-0">
+                        <button
+                          onClick={e => {
+                            e.stopPropagation();
+                            setEditingCollection(col);
+                            setEditingValue(col);
+                          }}
+                          className="text-[#cccccc] hover:text-[#0b9e7a] p-1 rounded transition-colors"
+                          title="Rename collection"
+                        >
+                          {Icon.edit}
+                        </button>
+                        <span className="text-[11px] font-semibold px-2.5 py-0.5 bg-gray-100 text-gray-500
+                     rounded-full group-hover:bg-[#edf9f5] group-hover:text-[#0b9e7a] transition-colors">
+                          {getCollectionItemCount(col)}
+                        </span>
+                      </div>
+
                     </div>
                   </div>
                 );
