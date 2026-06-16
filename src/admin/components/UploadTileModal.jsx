@@ -31,17 +31,21 @@ const INITIAL_STYLE_OPTIONS = [
 const INITIAL_PATTERN_OPTIONS = [
   'Non-Directional', 'Directional', 'Herringbone', 'Random', 'Linear',
 ];
-
+const INITIAL_APPLICATION_AREAS = [
+  'Living Room', 'Bedroom', 'Kitchen', 'Bathroom',
+  'Office', 'Corridor / Hallway', 'Retail Space',
+  'Hospital / Healthcare', 'Basement', 'Outdoor',
+];
 // ─── Persistent Memory (Lives outside the modal unmount lifecycle) ────────────
-let persistentNavCategories    = [...INITIAL_NAV_CATEGORIES];
-let persistentCollections      = [...INITIAL_COLLECTIONS];
-let persistentColorFamilies    = [...INITIAL_COLOR_FAMILIES];
-let persistentShadeOptions     = [...INITIAL_SHADES];
-let persistentIndustries       = [...INITIAL_USER_INDUSTRIES];
+let persistentNavCategories = [...INITIAL_NAV_CATEGORIES];
+let persistentCollections = [...INITIAL_COLLECTIONS];
+let persistentColorFamilies = [...INITIAL_COLOR_FAMILIES];
+let persistentShadeOptions = [...INITIAL_SHADES];
+let persistentIndustries = [...INITIAL_USER_INDUSTRIES];
 let persistentThicknessOptions = [...INITIAL_THICKNESS_OPTIONS]; // NEW
-let persistentStyleOptions     = [...INITIAL_STYLE_OPTIONS];     // NEW
-let persistentPatternOptions   = [...INITIAL_PATTERN_OPTIONS];   // NEW
-
+let persistentStyleOptions = [...INITIAL_STYLE_OPTIONS];     // NEW
+let persistentPatternOptions = [...INITIAL_PATTERN_OPTIONS];   // NEW
+let persistentApplicationAreas = [...INITIAL_APPLICATION_AREAS];
 // ─── Image Compression Utility ────────────────────────────────────────────────
 const compressImage = (file, { maxDimension = 1200, quality = 0.8 } = {}) =>
   new Promise((resolve, reject) => {
@@ -217,22 +221,25 @@ export default function UploadTileModal({ onClose, onSuccess }) {
   const [error, setError] = useState(null);
 
   const [selectedIndustries, setSelectedIndustries] = useState([]);
+  const [selectedApplicationAreas, setSelectedApplicationAreas] = useState([]); // ← ADD
+  const [newApplicationAreaInput, setNewApplicationAreaInput] = useState(''); // ← ADD
+  const [applicationAreas, setApplicationAreas] = useState(persistentApplicationAreas);
   const [tilePreview, setTilePreview] = useState(null);
   const [tileFileMeta, setTileFileMeta] = useState(null);
 
   // ── Persistent Synchronized Component States ────────────────────────────────
-  const [navCategories, setNavCategories]       = useState(persistentNavCategories);
-  const [collections, setCollections]           = useState(persistentCollections);
-  const [colorFamilies, setColorFamilies]       = useState(persistentColorFamilies);
-  const [shadeOptions, setShadeOptions]         = useState(persistentShadeOptions);
-  const [industries, setIndustries]             = useState(persistentIndustries);
+  const [navCategories, setNavCategories] = useState(persistentNavCategories);
+  const [collections, setCollections] = useState(persistentCollections);
+  const [colorFamilies, setColorFamilies] = useState(persistentColorFamilies);
+  const [shadeOptions, setShadeOptions] = useState(persistentShadeOptions);
+  const [industries, setIndustries] = useState(persistentIndustries);
   const [thicknessOptions, setThicknessOptions] = useState(persistentThicknessOptions); // NEW
-  const [styleOptions, setStyleOptions]         = useState(persistentStyleOptions);     // NEW
-  const [patternOptions, setPatternOptions]     = useState(persistentPatternOptions);   // NEW
+  const [styleOptions, setStyleOptions] = useState(persistentStyleOptions);     // NEW
+  const [patternOptions, setPatternOptions] = useState(persistentPatternOptions);   // NEW
 
   const [newIndustryInput, setNewIndustryInput] = useState('');
 
-  const formRef    = useRef(null);
+  const formRef = useRef(null);
   const rawFileRef = useRef(null);
 
   // ── Industry helpers ────────────────────────────────────────────────────────
@@ -240,7 +247,27 @@ export default function UploadTileModal({ onClose, onSuccess }) {
     setSelectedIndustries((prev) =>
       prev.includes(industry) ? prev.filter((i) => i !== industry) : [...prev, industry],
     );
+  const toggleApplicationArea = (area) =>
+    setSelectedApplicationAreas((prev) =>
+      prev.includes(area) ? prev.filter((a) => a !== area) : [...prev, area],
+    );
 
+  const handleAddCustomApplicationArea = (e) => {
+    e.preventDefault();
+    const val = newApplicationAreaInput.trim();
+    if (!val) return;
+    if (!applicationAreas.includes(val)) {
+      setApplicationAreas((prev) => {
+        const updated = [...prev, val];
+        persistentApplicationAreas = updated;
+        return updated;
+      });
+    }
+    if (!selectedApplicationAreas.includes(val)) {
+      setSelectedApplicationAreas((prev) => [...prev, val]);
+    }
+    setNewApplicationAreaInput('');
+  };
   const handleAddCustomIndustry = (e) => {
     e.preventDefault();
     const val = newIndustryInput.trim();
@@ -306,7 +333,8 @@ export default function UploadTileModal({ onClose, onSuccess }) {
       formData.delete('tileImage');
       formData.append('imageUrl', cloudData.secure_url);
       formData.append('userIndustry', JSON.stringify(selectedIndustries));
-
+      // formData.append('userIndustry', JSON.stringify(selectedIndustries));
+      formData.append('applicationArea', JSON.stringify(selectedApplicationAreas)); // ← ADD
       // Format tags as JSON array
       const rawTags = formData.get('tags');
       if (rawTags) {
@@ -319,13 +347,13 @@ export default function UploadTileModal({ onClose, onSuccess }) {
       if (!response.ok) throw new Error(data.error || 'Failed to save product');
 
       // ── Backup Submit Fallback Auto-Saver ───────────────────────────────────
-      const savedNavCategory  = formData.get('navCategory');
-      const savedCollection   = formData.get('accordionCategory');
-      const savedColour       = formData.get('colour');
-      const savedShade        = formData.get('shade');
-      const savedThickness    = formData.get('thickness'); // NEW
-      const savedStyle        = formData.get('style');     // NEW
-      const savedPattern      = formData.get('pattern');   // NEW
+      const savedNavCategory = formData.get('navCategory');
+      const savedCollection = formData.get('accordionCategory');
+      const savedColour = formData.get('colour');
+      const savedShade = formData.get('shade');
+      const savedThickness = formData.get('thickness'); // NEW
+      const savedStyle = formData.get('style');     // NEW
+      const savedPattern = formData.get('pattern');   // NEW
 
       if (savedNavCategory && !persistentNavCategories.includes(savedNavCategory))
         persistentNavCategories = [...persistentNavCategories, savedNavCategory];
@@ -553,7 +581,7 @@ export default function UploadTileModal({ onClose, onSuccess }) {
 
           {/* ── Recommended Industries ── */}
           <div>
-            <p className="text-[11px] font-bold uppercase tracking-widest text-slate-400 mb-3">Recommended Industries</p>
+            <p className="text-[11px] font-bold uppercase tracking-widest text-slate-400 mb-3">User Industries</p>
             <div className="bg-white border border-slate-200 rounded-lg p-4 shadow-sm flex flex-col gap-4">
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
                 {industries.map((ind) => (
@@ -605,7 +633,60 @@ export default function UploadTileModal({ onClose, onSuccess }) {
               </div>
             </div>
           </div>
+          {/* ── Application Areas ── */}
+          <div>
+            <p className="text-[11px] font-bold uppercase tracking-widest text-slate-400 mb-3">Application Areas</p>
+            <div className="bg-white border border-slate-200 rounded-lg p-4 shadow-sm flex flex-col gap-4">
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                {applicationAreas.map((area) => (
+                  <div key={area} className="relative group flex items-center justify-between py-1 px-2 border border-transparent hover:border-slate-100 rounded-lg transition-all">
+                    <label className="flex items-center gap-2.5 cursor-pointer flex-1 min-w-0">
+                      <input type="checkbox" className="hidden" checked={selectedApplicationAreas.includes(area)} onChange={() => toggleApplicationArea(area)} />
+                      <div className={`w-4 h-4 rounded flex items-center justify-center border shrink-0 transition-all ${selectedApplicationAreas.includes(area) ? 'bg-[#0b9e7a] border-[#0b9e7a]' : 'bg-slate-50 border-slate-300 group-hover:border-slate-400'}`}>
+                        {selectedApplicationAreas.includes(area) && (
+                          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3">
+                            <polyline points="20 6 9 17 4 12" />
+                          </svg>
+                        )}
+                      </div>
+                      <span className="text-xs font-medium text-slate-600 group-hover:text-slate-900 transition-colors truncate pr-4">{area}</span>
+                    </label>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setApplicationAreas((prev) => { const u = prev.filter(a => a !== area); persistentApplicationAreas = u; return u; });
+                        setSelectedApplicationAreas((prev) => prev.filter(a => a !== area));
+                      }}
+                      className="text-slate-400 hover:text-red-500 p-0.5 rounded opacity-0 group-hover:opacity-100 transition-opacity"
+                      title={`Remove ${area}`}
+                    >
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <line x1="18" y1="6" x2="6" y2="18" />
+                        <line x1="6" y1="6" x2="18" y2="18" />
+                      </svg>
+                    </button>
+                  </div>
+                ))}
+              </div>
 
+              <div className="flex gap-2 pt-3 border-t border-slate-100">
+                <input
+                  type="text"
+                  value={newApplicationAreaInput}
+                  onChange={(e) => setNewApplicationAreaInput(e.target.value)}
+                  placeholder="Type a custom application area..."
+                  className="flex-1 bg-slate-50 border border-slate-200 rounded-lg px-3 py-1.5 text-xs text-slate-800 focus:bg-white focus:border-[#0b9e7a] focus:outline-none transition-all placeholder:text-slate-400"
+                />
+                <button
+                  type="button"
+                  onClick={handleAddCustomApplicationArea}
+                  className="px-4 py-1.5 bg-slate-100 hover:bg-[#0b9e7a] text-slate-600 hover:text-white rounded-lg text-xs font-semibold transition-all cursor-pointer whitespace-nowrap"
+                >
+                  + Add Custom
+                </button>
+              </div>
+            </div>
+          </div>
           {/* ── Description + Texture ── */}
           <div>
             <p className="text-[11px] font-bold uppercase tracking-widest text-slate-400 mb-3">Media & Description</p>
