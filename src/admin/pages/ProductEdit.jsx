@@ -27,8 +27,17 @@ const INITIAL_STYLE_OPTIONS = [
 const INITIAL_PATTERN_OPTIONS = [
   'Non-Directional', 'Directional', 'Herringbone', 'Random', 'Linear',
 ];
+const INITIAL_USER_INDUSTRIES = [
+  'Industrial Flooring', 'Office Flooring', 'Residential Flooring',
+  'School Flooring', 'Sports Flooring', 'Hotel/ Hospitality Flooring',
+];
+const INITIAL_APPLICATION_AREAS = [
+  'Living Room', 'Bedroom', 'Kitchen', 'Bathroom',
+  'Office', 'Corridor / Hallway', 'Retail Space',
+  'Hospital / Healthcare', 'Basement', 'Outdoor',
+];
 
-// ─── 2. Persistent Memory (Module Scope prevents ESLint 'no-undef') ───────────
+// ─── 2. Persistent Memory ─────────────────────────────────────────────────────
 let persistentNavCategories    = [...INITIAL_NAV_CATEGORIES];
 let persistentCollections      = [...INITIAL_COLLECTIONS];
 let persistentColorFamilies    = [...INITIAL_COLOR_FAMILIES];
@@ -36,6 +45,8 @@ let persistentShadeOptions     = [...INITIAL_SHADES];
 let persistentThicknessOptions = [...INITIAL_THICKNESS_OPTIONS];
 let persistentStyleOptions     = [...INITIAL_STYLE_OPTIONS];
 let persistentPatternOptions   = [...INITIAL_PATTERN_OPTIONS];
+let persistentIndustries       = [...INITIAL_USER_INDUSTRIES];
+let persistentApplicationAreas = [...INITIAL_APPLICATION_AREAS];
 
 // ─── 3. Helper Functions & UI Primitives ──────────────────────────────────────
 const Label = ({ children }) => (
@@ -46,6 +57,20 @@ const inputCls =
   'w-full px-3 py-2 text-[13px] text-gray-800 bg-white border border-gray-200 rounded-lg ' +
   'focus:outline-none focus:border-[#0b9e7a] focus:ring-2 focus:ring-[#0b9e7a]/10 ' +
   'placeholder-gray-300 transition-all duration-150';
+
+function safeParseArray(data) {
+  if (!data) return [];
+  if (Array.isArray(data)) return data;
+  try {
+    let parsed = JSON.parse(data);
+    while (typeof parsed === 'string') {
+      parsed = JSON.parse(parsed);
+    }
+    return Array.isArray(parsed) ? parsed : [parsed];
+  } catch (e) {
+    return typeof data === 'string' ? data.split(',').map(s => s.trim()) : [];
+  }
+}
 
 function toForm(p) {
   return {
@@ -61,7 +86,6 @@ function toForm(p) {
     pattern:           p.pattern           ?? '',
     productLink:       p.productLink       ?? '',
     description:       p.description       ?? '',
-    userIndustry:      p.userIndustry      ?? [],
     img:               p.img               ?? '',
     tags:              Array.isArray(p.tags) ? p.tags.join(', ') : (p.tags || ''),
   };
@@ -72,19 +96,41 @@ export default function ProductEdit({ product, onCancel, onSaveSuccess }) {
   const [form, setForm] = useState(toForm(product));
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState('');
-  const [tagInput, setTagInput] = useState('');
-  
+
+  // 🌟 FIX: Helper to safely merge existing database values into our option lists
+  const syncOptions = (persistentArray, newValues) => {
+    return Array.from(new Set([...persistentArray, ...newValues])).filter(Boolean);
+  };
+
+  // Merge product's existing industries into the options list
+  const initialSelectedIndustries = safeParseArray(product.userIndustry);
+  const [industries, setIndustries] = useState(() => {
+    persistentIndustries = syncOptions(persistentIndustries, initialSelectedIndustries);
+    return persistentIndustries;
+  });
+  const [selectedIndustries, setSelectedIndustries] = useState(initialSelectedIndustries);
+  const [newIndustryInput, setNewIndustryInput] = useState('');
+
+  // Merge product's existing application areas into the options list
+  const initialSelectedAreas = safeParseArray(product.applicationArea);
+  const [applicationAreas, setApplicationAreas] = useState(() => {
+    persistentApplicationAreas = syncOptions(persistentApplicationAreas, initialSelectedAreas);
+    return persistentApplicationAreas;
+  });
+  const [selectedApplicationAreas, setSelectedApplicationAreas] = useState(initialSelectedAreas);
+  const [newApplicationAreaInput, setNewApplicationAreaInput] = useState('');
+
   const [selectedFile, setSelectedFile] = useState(null);
   const [previewUrl, setPreviewUrl] = useState('');
 
-  // Local State mapped to Global Persistent Variables
-  const [navCategories, setNavCategories] = useState(persistentNavCategories);
-  const [collections, setCollections] = useState(persistentCollections);
-  const [colorFamilies, setColorFamilies] = useState(persistentColorFamilies);
-  const [shadeOptions, setShadeOptions] = useState(persistentShadeOptions);
-  const [thicknessOptions, setThicknessOptions] = useState(persistentThicknessOptions);
-  const [styleOptions, setStyleOptions] = useState(persistentStyleOptions);
-  const [patternOptions, setPatternOptions] = useState(persistentPatternOptions);
+  // 🌟 FIX: Apply syncOptions to ToggleSelectFields as well so custom dropdown options don't vanish!
+  const [navCategories, setNavCategories] = useState(() => { persistentNavCategories = syncOptions(persistentNavCategories, [product.navCategory]); return persistentNavCategories; });
+  const [collections, setCollections] = useState(() => { persistentCollections = syncOptions(persistentCollections, [product.accordionCategory]); return persistentCollections; });
+  const [colorFamilies, setColorFamilies] = useState(() => { persistentColorFamilies = syncOptions(persistentColorFamilies, [product.colour]); return persistentColorFamilies; });
+  const [shadeOptions, setShadeOptions] = useState(() => { persistentShadeOptions = syncOptions(persistentShadeOptions, [product.shade]); return persistentShadeOptions; });
+  const [thicknessOptions, setThicknessOptions] = useState(() => { persistentThicknessOptions = syncOptions(persistentThicknessOptions, [product.thickness]); return persistentThicknessOptions; });
+  const [styleOptions, setStyleOptions] = useState(() => { persistentStyleOptions = syncOptions(persistentStyleOptions, [product.style]); return persistentStyleOptions; });
+  const [patternOptions, setPatternOptions] = useState(() => { persistentPatternOptions = syncOptions(persistentPatternOptions, [product.pattern]); return persistentPatternOptions; });
 
   useEffect(() => {
     return () => { if (previewUrl) URL.revokeObjectURL(previewUrl); };
@@ -107,33 +153,56 @@ export default function ProductEdit({ product, onCancel, onSaveSuccess }) {
     setPreviewUrl(URL.createObjectURL(file));
   }
 
-  function commitTag(e) {
-    if ((e.key === 'Enter' || e.key === ',') && tagInput.trim()) {
-      e.preventDefault();
-      const tag = tagInput.trim().replace(/,+$/, '');
-      if (tag && !form.userIndustry.includes(tag)) set('userIndustry', [...form.userIndustry, tag]);
-      setTagInput('');
+  const toggleIndustry = (ind) =>
+    setSelectedIndustries(prev =>
+      prev.includes(ind) ? prev.filter(i => i !== ind) : [...prev, ind]
+    );
+
+  const handleAddCustomIndustry = () => {
+    const val = newIndustryInput.trim();
+    if (!val) return;
+    if (!industries.includes(val)) {
+      setIndustries(prev => { const u = [...prev, val]; persistentIndustries = u; return u; });
     }
-  }
+    if (!selectedIndustries.includes(val)) setSelectedIndustries(prev => [...prev, val]);
+    setNewIndustryInput('');
+  };
 
-  const removeTag = tag => set('userIndustry', form.userIndustry.filter(t => t !== tag));
+  const toggleApplicationArea = (area) =>
+    setSelectedApplicationAreas(prev =>
+      prev.includes(area) ? prev.filter(a => a !== area) : [...prev, area]
+    );
 
-  async function handleSave() {
+  const handleAddCustomApplicationArea = () => {
+    const val = newApplicationAreaInput.trim();
+    if (!val) return;
+    if (!applicationAreas.includes(val)) {
+      setApplicationAreas(prev => { const u = [...prev, val]; persistentApplicationAreas = u; return u; });
+    }
+    if (!selectedApplicationAreas.includes(val)) setSelectedApplicationAreas(prev => [...prev, val]);
+    setNewApplicationAreaInput('');
+  };
+
+async function handleSave() {
     setSaving(true);
     setSaveError('');
     try {
       const formData = new FormData();
+      
+      // 1. Loop through standard text fields
       Object.keys(form).forEach(key => {
-        if (key === 'userIndustry') {
-          formData.append(key, JSON.stringify(form[key]));
-        } else if (key === 'tags') {
-          formData.append(key, JSON.stringify((form[key] || '').split(',').map(t => t.trim()).filter(Boolean)));
+        if (key === 'tags') {
+          formData.set(key, JSON.stringify((form[key] || '').split(',').map(t => t.trim()).filter(Boolean)));
         } else {
-          formData.append(key, form[key]);
+          formData.set(key, form[key]); // USE .set() INSTEAD OF .append()
         }
       });
-
-      if (selectedFile) formData.append('tileImage', selectedFile);
+      
+      // 2. Explicitly SET the custom arrays so they don't duplicate
+      formData.set('userIndustry', JSON.stringify(selectedIndustries));
+      formData.set('applicationArea', JSON.stringify(selectedApplicationAreas));
+      
+      if (selectedFile) formData.set('tileImage', selectedFile);
 
       const res = await fetch(`${BASE_URL}/products/${product._id}`, {
         method: 'PATCH',
@@ -293,16 +362,95 @@ export default function ProductEdit({ product, onCancel, onSaveSuccess }) {
             </div>
           </div>
 
+          {/* ── Recommended Industries ── */}
           <div>
-            <Label>Target Sectors</Label>
-            <div className="min-h-[42px] flex flex-wrap gap-1.5 p-2 bg-white border border-gray-200 rounded-lg focus-within:border-[#0b9e7a] focus-within:ring-2 focus-within:ring-[#0b9e7a]/10 transition-all cursor-text" onClick={e => e.currentTarget.querySelector('input')?.focus()}>
-              {form.userIndustry.map(tag => (
-                <span key={tag} className="flex items-center gap-1 pl-2.5 pr-1.5 py-0.5 bg-[#edf9f5] border border-[#0b9e7a]/20 text-[#0b9e7a] text-[11px] font-semibold rounded-md whitespace-nowrap">
-                  {tag}
-                  <button type="button" onClick={() => removeTag(tag)} className="text-[#0b9e7a]/50 hover:text-[#0b9e7a] leading-none hover:bg-[#0b9e7a]/10 rounded p-0.5 transition-colors"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
-                </span>
-              ))}
-              <input value={tagInput} onChange={e => setTagInput(e.target.value)} onKeyDown={commitTag} placeholder={form.userIndustry.length === 0 ? 'Type a sector, press Enter…' : ''} className="flex-1 min-w-[130px] text-[13px] text-gray-800 placeholder-gray-300 bg-transparent outline-none py-0.5 px-1" />
+            <Label>Recommended Industries</Label>
+            <div className="bg-white border border-gray-200 rounded-lg p-4 flex flex-col gap-4">
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                {industries.map(ind => (
+                  <div key={ind} className="relative group flex items-center justify-between py-1 px-2 border border-transparent hover:border-gray-100 rounded-lg transition-all">
+                    <label className="flex items-center gap-2.5 cursor-pointer flex-1 min-w-0">
+                      <input type="checkbox" className="hidden" checked={selectedIndustries.includes(ind)} onChange={() => toggleIndustry(ind)} />
+                      <div className={`w-4 h-4 rounded flex items-center justify-center border shrink-0 transition-all ${selectedIndustries.includes(ind) ? 'bg-[#0b9e7a] border-[#0b9e7a]' : 'bg-gray-50 border-gray-300 group-hover:border-gray-400'}`}>
+                        {selectedIndustries.includes(ind) && (
+                          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3"><polyline points="20 6 9 17 4 12" /></svg>
+                        )}
+                      </div>
+                      <span className="text-xs font-medium text-gray-600 group-hover:text-gray-900 transition-colors truncate pr-4">{ind}</span>
+                    </label>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIndustries(prev => { const u = prev.filter(i => i !== ind); persistentIndustries = u; return u; });
+                        setSelectedIndustries(prev => prev.filter(i => i !== ind));
+                      }}
+                      className="text-gray-400 hover:text-red-500 p-0.5 rounded opacity-0 group-hover:opacity-100 transition-opacity"
+                      title={`Remove ${ind}`}
+                    >
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                    </button>
+                  </div>
+                ))}
+              </div>
+              <div className="flex gap-2 pt-3 border-t border-gray-100">
+                <input
+                  type="text" value={newIndustryInput}
+                  onChange={e => setNewIndustryInput(e.target.value)}
+                  onKeyDown={e => e.key === 'Enter' && (e.preventDefault(), handleAddCustomIndustry())}
+                  placeholder="Type custom industry…"
+                  className="flex-1 bg-gray-50 border border-gray-200 rounded-lg px-3 py-1.5 text-xs text-gray-800 focus:bg-white focus:border-[#0b9e7a] focus:outline-none transition-all placeholder:text-gray-400"
+                />
+                <button type="button" onClick={handleAddCustomIndustry}
+                  className="px-4 py-1.5 bg-gray-100 hover:bg-[#0b9e7a] text-gray-600 hover:text-white rounded-lg text-xs font-semibold transition-all whitespace-nowrap">
+                  + Add
+                </button>
+              </div>
+            </div>
+          </div>
+
+          {/* ── Application Areas ── */}
+          <div>
+            <Label>Application Areas</Label>
+            <div className="bg-white border border-gray-200 rounded-lg p-4 flex flex-col gap-4">
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                {applicationAreas.map(area => (
+                  <div key={area} className="relative group flex items-center justify-between py-1 px-2 border border-transparent hover:border-gray-100 rounded-lg transition-all">
+                    <label className="flex items-center gap-2.5 cursor-pointer flex-1 min-w-0">
+                      <input type="checkbox" className="hidden" checked={selectedApplicationAreas.includes(area)} onChange={() => toggleApplicationArea(area)} />
+                      <div className={`w-4 h-4 rounded flex items-center justify-center border shrink-0 transition-all ${selectedApplicationAreas.includes(area) ? 'bg-[#0b9e7a] border-[#0b9e7a]' : 'bg-gray-50 border-gray-300 group-hover:border-gray-400'}`}>
+                        {selectedApplicationAreas.includes(area) && (
+                          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3"><polyline points="20 6 9 17 4 12" /></svg>
+                        )}
+                      </div>
+                      <span className="text-xs font-medium text-gray-600 group-hover:text-gray-900 transition-colors truncate pr-4">{area}</span>
+                    </label>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setApplicationAreas(prev => { const u = prev.filter(a => a !== area); persistentApplicationAreas = u; return u; });
+                        setSelectedApplicationAreas(prev => prev.filter(a => a !== area));
+                      }}
+                      className="text-gray-400 hover:text-red-500 p-0.5 rounded opacity-0 group-hover:opacity-100 transition-opacity"
+                      title={`Remove ${area}`}
+                    >
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                    </button>
+                  </div>
+                ))}
+              </div>
+              <div className="flex gap-2 pt-3 border-t border-gray-100">
+                <input
+                  type="text" value={newApplicationAreaInput}
+                  onChange={e => setNewApplicationAreaInput(e.target.value)}
+                  onKeyDown={e => e.key === 'Enter' && (e.preventDefault(), handleAddCustomApplicationArea())}
+                  placeholder="Type custom area…"
+                  className="flex-1 bg-gray-50 border border-gray-200 rounded-lg px-3 py-1.5 text-xs text-gray-800 focus:bg-white focus:border-[#0b9e7a] focus:outline-none transition-all placeholder:text-gray-400"
+                />
+                <button type="button" onClick={handleAddCustomApplicationArea}
+                  className="px-4 py-1.5 bg-gray-100 hover:bg-[#0b9e7a] text-gray-600 hover:text-white rounded-lg text-xs font-semibold transition-all whitespace-nowrap">
+                  + Add
+                </button>
+              </div>
             </div>
           </div>
 
