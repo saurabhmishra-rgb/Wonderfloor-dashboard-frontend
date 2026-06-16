@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import ProductEdit from './ProductEdit';
 
-const BASE_URL = import.meta.env.VITE_NODE_BACKEND_URL || 'http://localhost:8000';
+const BASE_URL = import.meta.env.VITE_NODE_BACKEND_URL || 'https://wonderfloor-dashboard.vercel.app';
 
 export default function ProductDetailModal({ productId, initialMode = 'view', onClose, onSuccess }) {
   const [product, setProduct] = useState(null);
