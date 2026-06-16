@@ -19,6 +19,7 @@ export default function ToggleSelectField({
   onEditOption,
   selectPlaceholder = 'Select…',
   createPlaceholder,
+  multiple = false, // 🌟 NEW PROP: Supports multi-select checkbox mode
 }) {
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef(null);
@@ -42,15 +43,34 @@ export default function ToggleSelectField({
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
+  // 🌟 FIX: Safely normalize incoming value into an array format for clean matching
+  const selectedArray = multiple
+    ? (Array.isArray(value) ? value : (value ? value.split(',').map(s => s.trim()).filter(Boolean) : []))
+    : [];
+
   const handleToggle = () => {
     setIsCustom((prev) => !prev);
     setIsOpen(false);
     setIsEditingApplied(false);
   };
 
+  // 🌟 FIX: Multi-select collection toggle handler
   const handleSelect = (val) => {
-    onChange(val);
-    setIsOpen(false);
+    if (multiple) {
+      if (val === '') {
+        onChange(Array.isArray(value) ? [] : '');
+      } else {
+        const updated = selectedArray.includes(val)
+          ? selectedArray.filter(v => v !== val)
+          : [...selectedArray, val];
+        
+        // Return type matches parent type context (array or comma string)
+        onChange(Array.isArray(value) ? updated : updated.join(', '));
+      }
+    } else {
+      onChange(val);
+      setIsOpen(false);
+    }
   };
 
   // --- Create New Handler ---
@@ -58,7 +78,14 @@ export default function ToggleSelectField({
     const val = customValue.trim();
     if (val) {
       if (!options.includes(val)) onAddOption(val);
-      onChange(val);
+      
+      if (multiple) {
+        const updated = [...new Set([...selectedArray, val])];
+        onChange(Array.isArray(value) ? updated : updated.join(', '));
+      } else {
+        onChange(val);
+      }
+      
       setIsCustom(false);
       setCustomValue('');
     }
@@ -77,11 +104,9 @@ export default function ToggleSelectField({
     const trimmed = inlineEditVal.trim();
     
     if (trimmed && trimmed !== value) {
-      // If the new name doesn't already exist, update the old one globally
       if (!options.includes(trimmed)) {
         onEditOption(value, trimmed);
       }
-      // Apply the new value to the form
       onChange(trimmed);
     }
     setIsEditingApplied(false);
@@ -91,6 +116,11 @@ export default function ToggleSelectField({
     e?.stopPropagation();
     setIsEditingApplied(false);
   };
+
+  // Text string mapping label display
+  const displayLabel = multiple
+    ? (selectedArray.length > 0 ? selectedArray.join(', ') : '')
+    : value;
 
   return (
     <div ref={dropdownRef} className="relative">
@@ -168,13 +198,13 @@ export default function ToggleSelectField({
             onClick={() => setIsOpen(!isOpen)}
             className="group w-full bg-white border border-gray-200 rounded-lg pl-3 pr-2 py-2 text-[13px] focus-within:border-[#0b9e7a] transition-all flex justify-between items-center cursor-pointer select-none min-h-[38px]"
           >
-            <span className={value ? 'text-gray-800 truncate' : 'text-gray-400'}>
-              {value || selectPlaceholder}
+            <span className={displayLabel ? 'text-gray-800 truncate pr-2' : 'text-gray-400'}>
+              {displayLabel || selectPlaceholder}
             </span>
             
             <div className="flex items-center gap-1 text-gray-400 shrink-0">
-              {/* EDIT PENCIL ICON - Appears only when a value is selected and hovered */}
-              {value && (
+              {/* 🌟 EDIT PENCIL ICON - Hidden on multi-select to avoid editing joined option chains directly */}
+              {value && !multiple && (
                 <button
                   type="button"
                   onClick={handleStartEditingApplied}
@@ -205,32 +235,52 @@ export default function ToggleSelectField({
               >
                 Clear selection...
               </li>
-              {options.map((opt) => (
-                <li
-                  key={opt}
-                  className="group px-3 py-1.5 text-sm text-gray-800 hover:bg-gray-50 flex justify-between items-center cursor-pointer min-h-[36px]"
-                  onClick={() => handleSelect(opt)}
-                >
-                  <span className="truncate flex-1">{opt}</span>
-                  
-                  {/* Remove Option Icon inside dropdown */}
-                  <button
-                    type="button"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      onRemoveOption(opt);
-                      if (value === opt) onChange('');
-                    }}
-                    className="text-gray-400 hover:text-red-500 p-1 rounded hover:bg-gray-200/60 opacity-0 group-hover:opacity-100 transition-all ml-2"
-                    title={`Delete ${opt}`}
+              {options.map((opt) => {
+                const isChecked = multiple ? selectedArray.includes(opt) : value === opt;
+                return (
+                  <li
+                    key={opt}
+                    className="group px-3 py-1.5 text-sm text-gray-800 hover:bg-gray-50 flex justify-between items-center cursor-pointer min-h-[36px]"
+                    onClick={() => handleSelect(opt)}
                   >
-                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                      <line x1="18" y1="6" x2="6" y2="18" />
-                      <line x1="6" y1="6" x2="18" y2="18" />
-                    </svg>
-                  </button>
-                </li>
-              ))}
+                    <div className="flex items-center gap-2 min-w-0 flex-1">
+                      {/* 🌟 CUSTOM CHECKBOX DESIGN */}
+                      {multiple && (
+                        <div className={`w-3.5 h-3.5 rounded flex items-center justify-center border shrink-0 transition-all ${isChecked ? 'bg-[#0b9e7a] border-[#0b9e7a]' : 'bg-white border-gray-300'}`}>
+                          {isChecked && (
+                            <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="4">
+                              <polyline points="20 6 9 17 4 12" />
+                            </svg>
+                          )}
+                        </div>
+                      )}
+                      <span className="truncate flex-1">{opt}</span>
+                    </div>
+                    
+                    {/* Remove Option Icon inside dropdown */}
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onRemoveOption(opt);
+                        if (multiple) {
+                          const safeFiltered = selectedArray.filter(i => i !== opt);
+                          onChange(Array.isArray(value) ? safeFiltered : safeFiltered.join(', '));
+                        } else if (value === opt) {
+                          onChange('');
+                        }
+                      }}
+                      className="text-gray-400 hover:text-red-500 p-1 rounded hover:bg-gray-200/60 opacity-0 group-hover:opacity-100 transition-all ml-2 shrink-0"
+                      title={`Delete ${opt}`}
+                    >
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <line x1="18" y1="6" x2="6" y2="18" />
+                        <line x1="6" y1="6" x2="18" y2="18" />
+                      </svg>
+                    </button>
+                  </li>
+                );
+              })}
             </ul>
           )}
         </div>
