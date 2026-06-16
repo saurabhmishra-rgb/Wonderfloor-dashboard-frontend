@@ -17,7 +17,7 @@ const Icon = {
   close: <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>,
   list_view: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="8" y1="6" x2="21" y2="6"></line><line x1="8" y1="12" x2="21" y2="12"></line><line x1="8" y1="18" x2="21" y2="18"></line><line x1="3" y1="6" x2="3.01" y2="6"></line><line x1="3" y1="12" x2="3.01" y2="12"></line><line x1="3" y1="18" x2="3.01" y2="18"></line></svg>,
   grid_view: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="14" y="14" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect></svg>,
-  logout: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>,
+  logout: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" /><polyline points="16 17 21 12 16 7" /><line x1="21" y1="12" x2="9" y2="12" /></svg>,
 };
 
 const ITEMS_PER_PAGE = 15;
@@ -80,7 +80,10 @@ export default function Overview() {
   useEffect(() => {
     fetchDashboardStats(uploadLimit);
   }, []);
-
+  const TYPE_LABEL = {
+    Room: 'Demo Rooms',
+    Tile: 'Flooring Product',
+  };
   return (
     <div className="flex h-screen w-full font-sans bg-[#f4f4f5] text-[#111111] overflow-hidden">
 
@@ -126,8 +129,8 @@ export default function Overview() {
                 <button
                   onClick={() => { navigate(item.path); setIsMobileMenuOpen(false); }}
                   className={`flex items-center gap-2.5 w-full px-5 py-[9px] border-l-2 text-[13px] text-left transition-all duration-150 cursor-pointer group ${isActive
-                      ? 'bg-[#edf9f5] border-[#0b9e7a] text-[#0b9e7a] font-medium'
-                      : 'bg-transparent border-transparent text-[#888888] font-normal hover:text-[#333333] hover:bg-[#f5f5f5]'
+                    ? 'bg-[#edf9f5] border-[#0b9e7a] text-[#0b9e7a] font-medium'
+                    : 'bg-transparent border-transparent text-[#888888] font-normal hover:text-[#333333] hover:bg-[#f5f5f5]'
                     }`}
                 >
                   <span className={`transition-opacity ${isActive ? 'opacity-100' : 'opacity-60 group-hover:opacity-90'}`}>
@@ -317,7 +320,7 @@ export default function Overview() {
                             <span className="text-[13px] text-[#222222] font-medium truncate pr-2">{row.name}</span>
                           </div>
                           <div className="text-xs text-[#aaaaaa] font-mono truncate pr-4" title={row.file}>{row.file}</div>
-                          <div className="text-[13px] text-[#666666]">{row.type}</div>
+                          <div className="text-[13px] text-[#666666]">{TYPE_LABEL[row.type] ?? row.type}</div>
                           <div>
                             <span className={`inline-block px-2.5 py-1 rounded-full text-[11px] font-medium truncate max-w-[140px] ${typeColor}`}>
                               {row.category}
@@ -365,7 +368,7 @@ export default function Overview() {
                         <div className="w-full aspect-video rounded-lg border border-[#e8e8e8] overflow-hidden bg-[#f5f5f5] mb-3 relative">
                           <img src={row.thumb} alt={row.name} className="w-full h-full object-cover" />
                           <span className="absolute top-2 left-2 inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold bg-black/60 text-white backdrop-blur-sm">
-                            {row.type}
+                            {TYPE_LABEL[row.type] ?? row.type}
                           </span>
                         </div>
                         <span className="text-[14px] text-[#111111] font-semibold truncate mb-1" title={row.name}>{row.name}</span>
