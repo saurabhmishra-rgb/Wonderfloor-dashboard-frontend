@@ -56,7 +56,7 @@ export default function Overview() {
   async function fetchDashboardStats(limit = ITEMS_PER_PAGE, isLoadMore = false) {
     isLoadMore ? setLoadingMore(true) : setLoading(true);
     try {
-      const response = await fetch(`http://localhost:8000/dashboard-stats?limit=${limit}`);
+      const response = await fetch(`https://wonderfloor-dashboard.vercel.app/dashboard-stats?limit=${limit}`);
       if (response.ok) {
         const data = await response.json();
         setDashboardData(data);
