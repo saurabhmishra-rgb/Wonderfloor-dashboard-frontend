@@ -1,6 +1,6 @@
 import { useState, useRef } from 'react';
 
-const BASE_URL = import.meta.env.VITE_NODE_BACKEND_URL || 'http://localhost:8000';
+const BASE_URL = import.meta.env.VITE_NODE_BACKEND_URL || 'https://wonderfloor-dashboard.vercel.app';
 
 // ─── Initial data constants ───────────────────────────────────────────────────
 const INITIAL_NAV_CATEGORIES = ['Flooring Products', 'Luxury Vinyl Tile'];
