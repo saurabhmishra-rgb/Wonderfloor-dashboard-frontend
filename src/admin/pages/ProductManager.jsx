@@ -63,7 +63,7 @@ export default function ProductManager() {
   const activePage = navItems.find(item => item.path === location.pathname)?.key || 'products';
   const types = [
     { label: 'All Products', value: 'All' },
-    { label: 'View by Collection- General', value: 'Flooring Products' },
+    { label: 'View by Collection - General', value: 'Flooring Products' },
     { label: 'View by Collection - LVT', value: 'Luxury Vinyl Tile' }
   ];
 
