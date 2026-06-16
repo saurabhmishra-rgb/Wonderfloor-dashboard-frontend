@@ -71,7 +71,7 @@ export default function RoomManager() {
   async function fetchRoomsData() {
     setLoading(true);
     try {
-      const response = await fetch('http://localhost:8000/rooms');
+      const response = await fetch('https://wonderfloor-dashboard.vercel.app/rooms');
       if (!response.ok) throw new Error('Failed to fetch data');
       const data = await response.json();
       setRooms(data.map(r => ({ ...r, isLive: r.isLive === true })));
@@ -96,7 +96,7 @@ export default function RoomManager() {
     const catRooms = rooms.filter(r => r.category === oldFullCat);
     await Promise.all(
       catRooms.map(r =>
-        fetch(`http://localhost:8000/rooms/${r._id}`, {
+        fetch(`https://wonderfloor-dashboard.vercel.app/${r._id}`, {
           method: 'PATCH',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ category: trimmed }),
@@ -113,7 +113,7 @@ export default function RoomManager() {
     e.stopPropagation();
     setTogglingId(roomId);
     try {
-      const res = await fetch(`http://localhost:8000/rooms/${roomId}/toggle-live`, {
+      const res = await fetch(`https://wonderfloor-dashboard.vercel.app/${roomId}/toggle-live`, {
         method: 'PATCH',
       });
       if (!res.ok) throw new Error('Toggle failed');
@@ -136,7 +136,7 @@ export default function RoomManager() {
 
     setTogglingCat(categoryName);
     try {
-      const res = await fetch('http://localhost:8000/rooms/bulk-toggle-live', {
+      const res = await fetch('https://wonderfloor-dashboard.vercel.app/rooms/bulk-toggle-live', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ category: categoryName, isLive: nextState }),
