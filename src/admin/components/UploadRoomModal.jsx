@@ -4,13 +4,17 @@ const INITIAL_ROOM_CATEGORIES = [
   'Industrial Flooring', 'Office Flooring', 'Residential Flooring', 
   'School Flooring', 'Sports Flooring', 'Supermarket Flooring', 
   'Transport Flooring', 'Hospital Flooring', 'Auditorium Flooring', 
-  'Hotel/ Hospitality Flooring'
+  'Hotel/ Hospitality Flooring' 
 ];
 
 const INITIAL_PRODUCT_COLLECTIONS = [
   'Braavo', 'Krayons', 'Durofloor', 'Siggma', 'Orbit', 'Stoneland Monza', 
+  'Antique','Adventus', 'Duratek','Galaxxy','GDP','Hi- Tech','Krayons','Luxuria','Matrixx','Meteor',
+  'Ornate','Orbit','Oriion','Rangolie','Rhythm','Robust','Traction / Safety','Trendo Wood',
+  'Trendo Chips', 'Uttsav','WallsPro Plus',
   'Meteor', 'Aventus', 'Timberworld 1.5mm', 'Timberland Exotica 2mm', 
-  'Timberland Maestro 3mm', 'Timberland Herringbone'
+  'Timberland Maestro 3mm', 'Timberland Herringbone','Timberland Widex', 'Grandeure Supreme',
+
 ];
 
 // ─── Persistent Memory (Lives outside the modal lifecycle) ────────────────────
