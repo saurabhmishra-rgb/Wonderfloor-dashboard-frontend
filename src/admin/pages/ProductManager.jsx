@@ -260,7 +260,7 @@ export default function ProductManager() {
               {Icon.menu}
             </button>
             <h1 className="text-base font-medium text-[#111111] m-0 truncate hidden sm:block">
-              Tile products
+              Flooring products
             </h1>
           </div>
 
