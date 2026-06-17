@@ -16,8 +16,12 @@ const INITIAL_COLOR_FAMILIES = [
   'Blue', 'Green', 'Red', 'Orange', 'Yellow', 'Purple', 'Pink',
 ];
 const INITIAL_USER_INDUSTRIES = [
-  'Industrial Flooring', 'Office Flooring', 'Residential Flooring',
-  'School Flooring', 'Sports Flooring', 'Hotel/ Hospitality Flooring',
+  
+  'Industrial Flooring', 'Office Flooring', 'Residential Flooring', 
+  'School Flooring', 'Sports Flooring', 'Supermarket Flooring', 
+  'Transport Flooring', 'Hospital Flooring', 'Auditorium Flooring', 
+  'Hotel/ Hospitality Flooring',
+
 ];
 const INITIAL_THICKNESS_OPTIONS = [
   '1.0mm', '1.5mm', '2.0mm', '2.5mm', '3.0mm', '3.5mm', '4.0mm', '5.0mm',
