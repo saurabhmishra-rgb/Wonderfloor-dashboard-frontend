@@ -720,7 +720,7 @@ export default function UploadTileModal({ onClose, onSuccess }) {
               </div>
 
               <div>
-                <label className="block text-[13px] font-semibold text-slate-600 mb-1.5">Tile Texture Image (JPG/PNG)</label>
+                <label className="block text-[13px] font-semibold text-slate-600 mb-1.5">Flooring Texture Image (JPG/PNG)</label>
                 <div className="relative w-full h-32 bg-white border-2 border-dashed border-slate-200 hover:border-[#0b9e7a] rounded-xl flex items-center justify-center overflow-hidden transition-all group cursor-pointer shadow-sm">
                   <input type="file" accept="image/*" required onChange={handleTileChange}
                     className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-20" />
