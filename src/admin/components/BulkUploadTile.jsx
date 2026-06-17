@@ -130,7 +130,7 @@ export default function BulkImageUploadModal({ onClose, onSuccess }) {
                 </span>
               </p>
               <p className="text-[11px] text-emerald-600 mt-1.5 font-medium">
-                💡 Sync Rule: File mapping will cross-check the assets you select against the <code className="bg-slate-100 px-1 rounded font-mono text-[11px]">Product Sample Image Name</code> column value.
+                 Sync Rule: File mapping will cross-check the assets you select against the <code className="bg-slate-100 px-1 rounded font-mono text-[11px]">Product Sample Image Name</code> column value.
               </p>
               <a 
                 href="/templates/product_bulk_template.csv" 
