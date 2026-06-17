@@ -28,7 +28,7 @@ export default function BulkImageUploadModal({ onClose, onSuccess }) {
 
   // Handle Multiple Images selection
   const handleImagesChange = (e) => {
-    if (e.target.files && e.target.files.length > 0) {
+    if (e.target.files && e.target.files[0]) {
       const filesArray = Array.from(e.target.files);
       const validImages = filesArray.filter(file => file.type.startsWith('image/'));
       
@@ -59,20 +59,36 @@ export default function BulkImageUploadModal({ onClose, onSuccess }) {
     });
 
     try {
-      const response = await fetch('https://wonderfloor-dashboard.vercel.app/upload/bulk-products-combined', {
+      // ── SMART API ROUTING PREFIX ──
+      // Directs to port 8000 locally, uses clean native relative paths on deployment (Vercel)
+      const API_BASE = window.location.hostname === 'localhost' 
+        ? 'http://localhost:8000' 
+        : 'https://wonderfloor-dashboard.vercel.app'; 
+
+      const response = await fetch(`${API_BASE}/upload/bulk-products-combined`, {
         method: 'POST',
         body: formData,
       });
 
-      const data = await response.json();
-      if (!response.ok) throw new Error(data.error || 'Failed to process bulk import stream.');
+      // Avoid JSON parsing crashes if server sends down HTML 404/500 pages
+      if (!response.ok) {
+        const errorText = await response.text();
+        let parsedError;
+        try {
+          parsedError = JSON.parse(errorText);
+        } catch {
+          parsedError = { error: `Server returned status code ${response.status}. Check backend logs.` };
+        }
+        throw new Error(parsedError.error || 'Failed to process bulk import stream.');
+      }
 
+      const data = await response.json();
       setLoading(false);
       if (onSuccess) onSuccess();
       onClose();
     } catch (err) {
-      console.error(err);
-      setError(err.message);
+      console.error("Bulk upload submission failure:", err);
+      setError(err.message || "Failed to communicate with data processing endpoints.");
       setLoading(false);
     }
   };
@@ -85,7 +101,7 @@ export default function BulkImageUploadModal({ onClose, onSuccess }) {
         <div className="flex justify-between items-center px-6 py-4 border-b border-slate-100 shrink-0">
           <div>
             <h2 className="text-lg font-semibold text-slate-800">Bulk Upload Products</h2>
-            <p className="text-xs text-slate-400 mt-0.5">Upload many products at once using an Excel or CSV sheet + texture images</p>
+            <p className="text-xs text-slate-400 mt-0.5">Upload many products at once using your exact product template sheet + texture images</p>
           </div>
           <button onClick={onClose} className="text-slate-400 hover:text-slate-600 transition-colors p-1 rounded-lg hover:bg-slate-50 cursor-pointer">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
@@ -95,7 +111,7 @@ export default function BulkImageUploadModal({ onClose, onSuccess }) {
         {/* Form Body Wrapper */}
         <div className="p-6 overflow-y-auto flex flex-col gap-5 bg-slate-50/50 flex-1">
           {error && (
-            <div className="bg-red-50 border border-red-200 text-red-600 p-3 rounded-lg text-xs font-medium shrink-0 animate-pulse">
+            <div className="bg-red-50 border border-red-200 text-red-600 p-3 rounded-lg text-xs font-medium shrink-0">
               {error}
             </div>
           )}
@@ -106,12 +122,18 @@ export default function BulkImageUploadModal({ onClose, onSuccess }) {
               1
             </div>
             <div className="flex-1">
-              <h3 className="text-sm font-semibold text-slate-700">Download the data template</h3>
+              <h3 className="text-sm font-semibold text-slate-700">Your Data Template Structure</h3>
               <p className="text-xs text-slate-400 mt-0.5 leading-relaxed">
-                Fill in columns exactly: <code className="bg-slate-50 px-1 py-0.5 border border-slate-200 rounded font-mono text-[11px] text-slate-600">name</code>, <code className="bg-slate-50 px-1 py-0.5 border border-slate-200 rounded font-mono text-[11px] text-slate-600">sku</code>, <code className="bg-slate-50 px-1 py-0.5 border border-slate-200 rounded font-mono text-[11px] text-slate-600">size</code>, <code className="bg-slate-50 px-1 py-0.5 border border-slate-200 rounded font-mono text-[11px] text-slate-600">navCategory</code>, <code className="bg-slate-50 px-1 py-0.5 border border-slate-200 rounded font-mono text-[11px] text-slate-600">accordionCategory</code>, <code className="bg-slate-50 px-1 py-0.5 border border-slate-200 rounded font-mono text-[11px] text-slate-600">colour</code>, <code className="bg-slate-50 px-1 py-0.5 border border-slate-200 rounded font-mono text-[11px] text-slate-600">shade</code>.
+                Your spreadsheet matches these exact column properties perfectly:
+                <span className="block mt-1 font-mono text-[11px] text-slate-600 bg-slate-50 p-2 border border-slate-200 rounded break-all max-h-24 overflow-y-auto">
+                  Product Collection, Product Name/ Display Name, Size, Thickness, SKU, Style, Colour Family, Shade, Product Sample Image Name, Product Link, Pattern/ Layout, User Industry - Parent category as per website data, Application Area - Display Data (Product Popup), Searchable Tags, Description
+                </span>
+              </p>
+              <p className="text-[11px] text-emerald-600 mt-1.5 font-medium">
+                💡 Sync Rule: File mapping will cross-check the assets you select against the <code className="bg-slate-100 px-1 rounded font-mono text-[11px]">Product Sample Image Name</code> column value.
               </p>
               <a 
-                href="http://localhost:8000/templates/product_bulk_template.csv" 
+                href="/templates/product_bulk_template.csv" 
                 download
                 className="inline-flex items-center gap-1.5 mt-3 px-4 py-2 border border-slate-200 hover:border-slate-300 bg-white rounded-lg text-slate-600 font-semibold text-xs transition-colors shadow-xs cursor-pointer"
               >
@@ -157,7 +179,7 @@ export default function BulkImageUploadModal({ onClose, onSuccess }) {
                 )}
               </div>
               <p className="text-xs text-slate-400 mt-0.5">
-                Image filenames should match your product SKUs closely so the index sync runner maps them properly.
+                Ensure filenames match what is typed inside the <code className="bg-slate-100 px-1 rounded font-mono text-[11px]">Product Sample Image Name</code> column row exactly.
               </p>
               
               <input type="file" ref={imageInputRef} accept="image/*" multiple onChange={handleImagesChange} className="hidden" />
@@ -187,7 +209,7 @@ export default function BulkImageUploadModal({ onClose, onSuccess }) {
             disabled={loading || !dataFile} 
             className="px-6 py-2.5 rounded-lg text-xs font-semibold text-white bg-[#0b9e7a] hover:bg-[#098264] transition-colors disabled:opacity-40 disabled:cursor-not-allowed shadow-sm flex items-center gap-2 cursor-pointer"
           >
-            {loading ? 'Processing records dataset...' : `Upload ${imageFiles.length} Product${imageFiles.length !== 1 ? 's' : ''}`}
+            {loading ? 'Processing records dataset...' : `Upload Products`}
           </button>
         </div>
 
