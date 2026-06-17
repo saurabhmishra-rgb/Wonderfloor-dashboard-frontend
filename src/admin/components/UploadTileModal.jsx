@@ -10,7 +10,7 @@ const INITIAL_COLLECTIONS = [
   'Timberland Maestro 3mm', 'Timberland Widex', 'Timberland Herringbone',
   'Grandeure Supreme',
 ];
-const INITIAL_SHADES = ['Light', 'Medium', 'Dark'];
+const INITIAL_SHADES   = ['Light', 'Medium', 'Dark'];
 const INITIAL_COLOR_FAMILIES = [
   'Grey', 'Beige', 'Brown', 'Black', 'White',
   'Blue', 'Green', 'Red', 'Orange', 'Yellow', 'Purple', 'Pink',
@@ -19,8 +19,6 @@ const INITIAL_USER_INDUSTRIES = [
   'Industrial Flooring', 'Office Flooring', 'Residential Flooring',
   'School Flooring', 'Sports Flooring', 'Hotel/ Hospitality Flooring',
 ];
-
-// ── NEW: Initial options for the 4 new fields ────────────────────────────────
 const INITIAL_THICKNESS_OPTIONS = [
   '1.0mm', '1.5mm', '2.0mm', '2.5mm', '3.0mm', '3.5mm', '4.0mm', '5.0mm',
 ];
@@ -36,17 +34,26 @@ const INITIAL_APPLICATION_AREAS = [
   'Office', 'Corridor / Hallway', 'Retail Space',
   'Hospital / Healthcare', 'Basement', 'Outdoor',
 ];
-// ─── Persistent Memory (Lives outside the modal unmount lifecycle) ────────────
-let persistentNavCategories = [...INITIAL_NAV_CATEGORIES];
-let persistentCollections = [...INITIAL_COLLECTIONS];
-let persistentColorFamilies = [...INITIAL_COLOR_FAMILIES];
-let persistentShadeOptions = [...INITIAL_SHADES];
-let persistentIndustries = [...INITIAL_USER_INDUSTRIES];
-let persistentThicknessOptions = [...INITIAL_THICKNESS_OPTIONS]; // NEW
-let persistentStyleOptions = [...INITIAL_STYLE_OPTIONS];     // NEW
-let persistentPatternOptions = [...INITIAL_PATTERN_OPTIONS];   // NEW
+
+// ── Color swatch map ──────────────────────────────────────────────────────────
+const COLOR_SWATCH_MAP = {
+  Grey: '#9CA3AF', Beige: '#D4B483', Brown: '#92400E', Black: '#374151',
+  White: '#E2E8F0', Blue: '#3B82F6', Green: '#10B981', Red: '#EF4444',
+  Orange: '#F97316', Yellow: '#EAB308', Purple: '#8B5CF6', Pink: '#EC4899',
+};
+
+// ─── Persistent memory ────────────────────────────────────────────────────────
+let persistentNavCategories    = [...INITIAL_NAV_CATEGORIES];
+let persistentCollections      = [...INITIAL_COLLECTIONS];
+let persistentColorFamilies    = [...INITIAL_COLOR_FAMILIES];
+let persistentShadeOptions     = [...INITIAL_SHADES];
+let persistentIndustries       = [...INITIAL_USER_INDUSTRIES];
+let persistentThicknessOptions = [...INITIAL_THICKNESS_OPTIONS];
+let persistentStyleOptions     = [...INITIAL_STYLE_OPTIONS];
+let persistentPatternOptions   = [...INITIAL_PATTERN_OPTIONS];
 let persistentApplicationAreas = [...INITIAL_APPLICATION_AREAS];
-// ─── Image Compression Utility ────────────────────────────────────────────────
+
+// ─── Image compression ────────────────────────────────────────────────────────
 const compressImage = (file, { maxDimension = 1200, quality = 0.8 } = {}) =>
   new Promise((resolve, reject) => {
     const reader = new FileReader();
@@ -54,9 +61,9 @@ const compressImage = (file, { maxDimension = 1200, quality = 0.8 } = {}) =>
       const img = new Image();
       img.onload = () => {
         const { width, height } = img;
-        const ratio = Math.min(maxDimension / width, maxDimension / height, 1);
+        const ratio  = Math.min(maxDimension / width, maxDimension / height, 1);
         const canvas = document.createElement('canvas');
-        canvas.width = Math.round(width * ratio);
+        canvas.width  = Math.round(width  * ratio);
         canvas.height = Math.round(height * ratio);
         canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height);
         canvas.toBlob(
@@ -64,144 +71,110 @@ const compressImage = (file, { maxDimension = 1200, quality = 0.8 } = {}) =>
             if (!blob) { reject(new Error('Canvas compression failed')); return; }
             resolve(new File([blob], file.name.replace(/\.[^.]+$/, '.jpg'), { type: 'image/jpeg' }));
           },
-          'image/jpeg',
-          quality,
+          'image/jpeg', quality,
         );
       };
-      img.onerror = () => reject(new Error('Failed to load image for compression'));
+      img.onerror = () => reject(new Error('Failed to load image'));
       img.src = evt.target.result;
     };
     reader.onerror = () => reject(new Error('FileReader failed'));
     reader.readAsDataURL(file);
   });
 
-const formatBytes = (bytes) => {
-  if (bytes < 1024) return `${bytes} B`;
-  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(0)} KB`;
-  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+const formatBytes = (b) => {
+  if (b < 1024) return `${b} B`;
+  if (b < 1048576) return `${(b / 1024).toFixed(0)} KB`;
+  return `${(b / 1048576).toFixed(1)} MB`;
 };
 
-// ─── ToggleSelectField ────────────────────────────────────────────────────────
+// ─── Shared icon: X ──────────────────────────────────────────────────────────
+const XIcon = ({ size = 14 }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+    <line x1="18" y1="6"  x2="6"  y2="18" />
+    <line x1="6"  y1="6"  x2="18" y2="18" />
+  </svg>
+);
+const CheckIcon = ({ size = 10, color = 'white' }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="3">
+    <polyline points="20 6 9 17 4 12" />
+  </svg>
+);
+const ChevronIcon = ({ open }) => (
+  <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"
+    className={`transition-transform duration-200 ${open ? 'rotate-180' : ''}`}>
+    <path d="M19 9l-7 7-7-7" />
+  </svg>
+);
+
+// ─── ToggleSelectField  (single-select, unchanged) ────────────────────────────
 function ToggleSelectField({
-  label,
-  name,
-  required = true,
-  options,
-  onAddOption,
-  onRemoveOption,
-  selectPlaceholder = 'Select…',
-  createPlaceholder,
+  label, name, required = true, options, onAddOption, onRemoveOption,
+  selectPlaceholder = 'Select…', createPlaceholder,
 }) {
-  const [isCustom, setIsCustom] = useState(false);
+  const [isCustom, setIsCustom]       = useState(false);
   const [customValue, setCustomValue] = useState('');
-  const [selectedValue, setSelectedValue] = useState('');
-  const [isOpen, setIsOpen] = useState(false);
+  const [selectedValue, setSelected]  = useState('');
+  const [isOpen, setIsOpen]           = useState(false);
 
-  const handleToggle = () => {
-    setIsCustom((prev) => !prev);
-    setIsOpen(false);
-  };
-
-  const handleSelect = (val) => {
-    setSelectedValue(val);
-    setIsOpen(false);
-  };
-
-  const handleAddCustomInline = () => {
+  const handleAddCustom = () => {
     const val = customValue.trim();
-    if (val) {
-      if (!options.includes(val)) onAddOption(val);
-      setSelectedValue(val);
-      setIsCustom(false);
-      setCustomValue('');
-    }
+    if (!val) return;
+    if (!options.includes(val)) onAddOption(val);
+    setSelected(val);
+    setIsCustom(false);
+    setCustomValue('');
   };
 
   return (
     <div>
-      {/* Label row with toggle */}
       <div className="flex justify-between items-center mb-1.5">
         <label className="block text-[13px] font-semibold text-slate-600">{label}</label>
-        <button
-          type="button"
-          onClick={handleToggle}
-          className="text-xs text-[#0b9e7a] hover:text-[#098264] hover:underline font-semibold cursor-pointer transition-colors"
-        >
+        <button type="button" onClick={() => { setIsCustom(p => !p); setIsOpen(false); }}
+          className="text-xs text-[#0b9e7a] hover:text-[#098264] hover:underline font-semibold cursor-pointer transition-colors">
           {isCustom ? 'Select Existing' : '+ Create New'}
         </button>
       </div>
 
       {isCustom ? (
-        /* ── Custom text entry ── */
         <div className="flex gap-2">
-          <input
-            type="text"
-            name={name}
-            required={required}
+          <input type="text" name={name} required={required}
             placeholder={createPlaceholder || `Enter new ${label.toLowerCase()}…`}
-            value={customValue}
-            onChange={(e) => setCustomValue(e.target.value)}
+            value={customValue} onChange={e => setCustomValue(e.target.value)}
             className="w-full bg-white border border-slate-200 rounded-lg px-4 py-2.5 text-slate-800 text-sm focus:border-[#0b9e7a] focus:ring-1 focus:ring-[#0b9e7a] focus:outline-none transition-all placeholder:text-slate-400"
           />
-          <button
-            type="button"
-            onClick={handleAddCustomInline}
-            className="px-3 bg-slate-100 hover:bg-[#0b9e7a] text-slate-600 hover:text-white rounded-lg text-xs font-semibold transition-all cursor-pointer"
-          >
+          <button type="button" onClick={handleAddCustom}
+            className="px-3 bg-slate-100 hover:bg-[#0b9e7a] text-slate-600 hover:text-white rounded-lg text-xs font-semibold transition-all cursor-pointer">
             Add
           </button>
         </div>
       ) : (
-        /* ── Custom Dropdown Menu ── */
         <div className="relative">
           <input type="hidden" name={name} value={selectedValue} required={required} />
-
-          <div
-            onClick={() => setIsOpen(!isOpen)}
-            className="w-full bg-white border border-slate-200 rounded-lg px-4 py-2.5 text-slate-800 text-sm focus-within:border-[#0b9e7a] focus-within:ring-1 focus-within:ring-[#0b9e7a] transition-all flex justify-between items-center cursor-pointer select-none"
-          >
+          <div onClick={() => setIsOpen(p => !p)}
+            className="w-full bg-white border border-slate-200 rounded-lg px-4 py-2.5 text-sm transition-all flex justify-between items-center cursor-pointer select-none hover:border-slate-300">
             <span className={selectedValue ? 'text-slate-800' : 'text-slate-400'}>
               {selectedValue || selectPlaceholder}
             </span>
-            <div className="text-slate-400">
-              <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24" className={`transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`}>
-                <path d="M19 9l-7 7-7-7" />
-              </svg>
-            </div>
+            <span className="text-slate-400"><ChevronIcon open={isOpen} /></span>
           </div>
 
           {isOpen && (
             <>
-              <div className="fixed inset-0 z-20" onClick={() => setIsOpen(false)}></div>
-
+              <div className="fixed inset-0 z-20" onClick={() => setIsOpen(false)} />
               <ul className="absolute z-30 w-full mt-1 bg-white border border-slate-200 rounded-lg shadow-lg max-h-60 overflow-y-auto py-1">
-                <li
-                  onClick={() => handleSelect('')}
-                  className="px-4 py-2 text-sm text-slate-400 hover:bg-slate-50 cursor-pointer"
-                >
+                <li onClick={() => { setSelected(''); setIsOpen(false); }}
+                  className="px-4 py-2 text-sm text-slate-400 hover:bg-slate-50 cursor-pointer">
                   {selectPlaceholder}
                 </li>
-                {options.map((opt) => (
-                  <li
-                    key={opt}
+                {options.map(opt => (
+                  <li key={opt}
                     className="group px-4 py-2 text-sm text-slate-800 hover:bg-slate-50 flex justify-between items-center cursor-pointer"
-                    onClick={() => handleSelect(opt)}
-                  >
+                    onClick={() => { setSelected(opt); setIsOpen(false); }}>
                     <span className="truncate flex-1">{opt}</span>
-                    <button
-                      type="button"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        onRemoveOption(opt);
-                        if (selectedValue === opt) setSelectedValue('');
-                      }}
-                      className="text-slate-400 hover:text-red-500 p-1 rounded hover:bg-slate-200/60 opacity-0 group-hover:opacity-100 transition-all ml-2"
-                      title={`Remove ${opt}`}
-                    >
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                        <line x1="18" y1="6" x2="6" y2="18" />
-                        <line x1="6" y1="6" x2="18" y2="18" />
-                      </svg>
+                    <button type="button"
+                      onClick={e => { e.stopPropagation(); onRemoveOption(opt); if (selectedValue === opt) setSelected(''); }}
+                      className="text-slate-300 hover:text-red-500 p-1 rounded opacity-0 group-hover:opacity-100 transition-all ml-2">
+                      <XIcon size={12} />
                     </button>
                   </li>
                 ))}
@@ -214,79 +187,221 @@ function ToggleSelectField({
   );
 }
 
+// ─── MultiSelectDropdown — dropdown trigger + checkbox list inside ─────────────
+function MultiSelectDropdown({
+  label, name, options, selected, onToggle, onAddOption, onRemoveOption,
+  placeholder = 'Select…', addPlaceholder, showSwatches = false,
+}) {
+  const [isOpen, setIsOpen]     = useState(false);
+  const [newInput, setNewInput] = useState('');
+
+  // Trigger label: show dots + names, or "N selected" when many
+  const triggerContent = () => {
+    if (selected.length === 0) return null;
+    return (
+      <span className="flex items-center gap-1.5 flex-1 min-w-0">
+        {showSwatches && selected.slice(0, 4).map(s => (
+          <span key={s} className="w-3 h-3 rounded-full border border-slate-200 shrink-0"
+            style={{ backgroundColor: COLOR_SWATCH_MAP[s] || '#94a3b8' }} />
+        ))}
+        <span className="truncate text-slate-800 text-sm">
+          {selected.length <= 2
+            ? selected.join(', ')
+            : `${selected.slice(0, 2).join(', ')} +${selected.length - 2} more`}
+        </span>
+      </span>
+    );
+  };
+
+  const handleAdd = () => {
+    const val = newInput.trim();
+    if (!val) return;
+    if (!options.includes(val)) onAddOption(val);
+    if (!selected.includes(val)) onToggle(val);
+    setNewInput('');
+  };
+
+  return (
+    <div>
+      {/* Label row */}
+      <div className="flex justify-between items-center mb-1.5">
+        <label className="block text-[13px] font-semibold text-slate-600">{label}</label>
+        {selected.length > 0 && (
+          <span className="text-[11px] text-[#0b9e7a] font-semibold">
+            {selected.length} selected
+          </span>
+        )}
+      </div>
+
+      {/* Hidden input carries the JSON array */}
+      <input type="hidden" name={name} value={JSON.stringify(selected)} />
+
+      <div className="relative">
+        {/* Trigger */}
+        <div onClick={() => setIsOpen(p => !p)}
+          className={`w-full bg-white border rounded-lg px-4 py-2.5 text-sm transition-all flex justify-between items-center cursor-pointer select-none
+            ${isOpen ? 'border-[#0b9e7a] ring-1 ring-[#0b9e7a]' : 'border-slate-200 hover:border-slate-300'}`}>
+          {selected.length > 0
+            ? triggerContent()
+            : <span className="text-slate-400">{placeholder}</span>
+          }
+          <span className="text-slate-400 ml-2 shrink-0"><ChevronIcon open={isOpen} /></span>
+        </div>
+
+        {/* Dropdown panel */}
+        {isOpen && (
+          <>
+            <div className="fixed inset-0 z-20" onClick={() => setIsOpen(false)} />
+            <div className="absolute z-30 w-full mt-1 bg-white border border-slate-200 rounded-lg shadow-lg overflow-hidden">
+
+              {/* Checkbox list */}
+              <ul className="max-h-52 overflow-y-auto py-1">
+                {options.map(opt => {
+                  const checked = selected.includes(opt);
+                  const swatch  = showSwatches ? (COLOR_SWATCH_MAP[opt] || null) : null;
+                  return (
+                    <li key={opt}
+                      className="group flex items-center justify-between px-3 py-2 hover:bg-slate-50 cursor-pointer"
+                      onClick={() => onToggle(opt)}>
+
+                      {/* Checkbox + label */}
+                      <span className="flex items-center gap-2.5 flex-1 min-w-0">
+                        {/* Custom checkbox */}
+                        <span className={`w-4 h-4 rounded border flex items-center justify-center shrink-0 transition-all
+                          ${checked
+                            ? 'bg-[#0b9e7a] border-[#0b9e7a]'
+                            : 'bg-slate-50 border-slate-300 group-hover:border-slate-400'}`}>
+                          {checked && <CheckIcon />}
+                        </span>
+
+                        {/* Color swatch dot */}
+                        {swatch && (
+                          <span className="w-3.5 h-3.5 rounded-full border border-slate-200 shrink-0"
+                            style={{ backgroundColor: swatch }} />
+                        )}
+
+                        <span className="text-sm text-slate-700 truncate">{opt}</span>
+                      </span>
+
+                      {/* Remove option button */}
+                      <button type="button"
+                        onClick={e => {
+                          e.stopPropagation();
+                          onRemoveOption(opt);
+                          if (checked) onToggle(opt); // deselect if was selected
+                        }}
+                        className="text-slate-300 hover:text-red-500 p-1 rounded opacity-0 group-hover:opacity-100 transition-all ml-1 shrink-0"
+                        title={`Remove ${opt}`}>
+                        <XIcon size={12} />
+                      </button>
+                    </li>
+                  );
+                })}
+              </ul>
+
+              {/* Add custom footer */}
+              <div className="border-t border-slate-100 p-2 flex gap-2 bg-slate-50/60">
+                <input
+                  type="text"
+                  value={newInput}
+                  onChange={e => setNewInput(e.target.value)}
+                  onKeyDown={e => e.key === 'Enter' && (e.preventDefault(), handleAdd())}
+                  placeholder={addPlaceholder || `Add custom…`}
+                  onClick={e => e.stopPropagation()}
+                  className="flex-1 bg-white border border-slate-200 rounded-md px-3 py-1.5 text-xs text-slate-800 focus:border-[#0b9e7a] focus:outline-none transition-all placeholder:text-slate-400"
+                />
+                <button type="button" onClick={e => { e.stopPropagation(); handleAdd(); }}
+                  className="px-3 py-1.5 bg-slate-100 hover:bg-[#0b9e7a] text-slate-600 hover:text-white rounded-md text-xs font-semibold transition-all cursor-pointer whitespace-nowrap">
+                  + Add
+                </button>
+              </div>
+
+            </div>
+          </>
+        )}
+      </div>
+
+      {/* Selected pills below trigger */}
+      {selected.length > 0 && (
+        <div className="flex flex-wrap gap-1.5 mt-2">
+          {selected.map(s => (
+            <span key={s}
+              className="inline-flex items-center gap-1 bg-[#0b9e7a]/10 text-[#0b9e7a] text-[11px] font-semibold px-2 py-0.5 rounded-full">
+              {showSwatches && (
+                <span className="w-2.5 h-2.5 rounded-full border border-white/40 shrink-0"
+                  style={{ backgroundColor: COLOR_SWATCH_MAP[s] || '#94a3b8' }} />
+              )}
+              {s}
+              <button type="button" onClick={() => onToggle(s)}
+                className="text-[#0b9e7a]/50 hover:text-[#0b9e7a] ml-0.5 transition-colors">
+                <XIcon size={9} />
+              </button>
+            </span>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ─── UploadTileModal ──────────────────────────────────────────────────────────
 export default function UploadTileModal({ onClose, onSuccess }) {
-  const [loading, setLoading] = useState(false);
+  const [loading,     setLoading]     = useState(false);
   const [uploadStage, setUploadStage] = useState('');
-  const [error, setError] = useState(null);
+  const [error,       setError]       = useState(null);
 
-  const [selectedIndustries, setSelectedIndustries] = useState([]);
-  const [selectedApplicationAreas, setSelectedApplicationAreas] = useState([]); // ← ADD
-  const [newApplicationAreaInput, setNewApplicationAreaInput] = useState(''); // ← ADD
+  // Multi-select states
+  const [selectedIndustries,       setSelectedIndustries]       = useState([]);
+  const [selectedApplicationAreas, setSelectedApplicationAreas] = useState([]);
+  const [selectedColors,           setSelectedColors]           = useState([]);
+  const [selectedThicknessValues,  setSelectedThicknessValues]  = useState([]);
+
+  // Options lists
+  const [navCategories,    setNavCategories]    = useState(persistentNavCategories);
+  const [collections,      setCollections]      = useState(persistentCollections);
+  const [colorFamilies,    setColorFamilies]    = useState(persistentColorFamilies);
+  const [shadeOptions,     setShadeOptions]     = useState(persistentShadeOptions);
+  const [industries,       setIndustries]       = useState(persistentIndustries);
+  const [thicknessOptions, setThicknessOptions] = useState(persistentThicknessOptions);
+  const [styleOptions,     setStyleOptions]     = useState(persistentStyleOptions);
+  const [patternOptions,   setPatternOptions]   = useState(persistentPatternOptions);
   const [applicationAreas, setApplicationAreas] = useState(persistentApplicationAreas);
-  const [tilePreview, setTilePreview] = useState(null);
-  const [tileFileMeta, setTileFileMeta] = useState(null);
 
-  // ── Persistent Synchronized Component States ────────────────────────────────
-  const [navCategories, setNavCategories] = useState(persistentNavCategories);
-  const [collections, setCollections] = useState(persistentCollections);
-  const [colorFamilies, setColorFamilies] = useState(persistentColorFamilies);
-  const [shadeOptions, setShadeOptions] = useState(persistentShadeOptions);
-  const [industries, setIndustries] = useState(persistentIndustries);
-  const [thicknessOptions, setThicknessOptions] = useState(persistentThicknessOptions); // NEW
-  const [styleOptions, setStyleOptions] = useState(persistentStyleOptions);     // NEW
-  const [patternOptions, setPatternOptions] = useState(persistentPatternOptions);   // NEW
+  const [newIndustryInput,        setNewIndustryInput]        = useState('');
+  const [newApplicationAreaInput, setNewApplicationAreaInput] = useState('');
+  const [tilePreview,   setTilePreview]   = useState(null);
+  const [tileFileMeta,  setTileFileMeta]  = useState(null);
 
-  const [newIndustryInput, setNewIndustryInput] = useState('');
-
-  const formRef = useRef(null);
+  const formRef    = useRef(null);
   const rawFileRef = useRef(null);
 
-  // ── Industry helpers ────────────────────────────────────────────────────────
-  const toggleIndustry = (industry) =>
-    setSelectedIndustries((prev) =>
-      prev.includes(industry) ? prev.filter((i) => i !== industry) : [...prev, industry],
-    );
-  const toggleApplicationArea = (area) =>
-    setSelectedApplicationAreas((prev) =>
-      prev.includes(area) ? prev.filter((a) => a !== area) : [...prev, area],
-    );
+  // ── Toggle helpers ──────────────────────────────────────────────────────────
+  const toggleIndustry        = v => setSelectedIndustries(p        => p.includes(v) ? p.filter(i => i !== v) : [...p, v]);
+  const toggleApplicationArea = v => setSelectedApplicationAreas(p  => p.includes(v) ? p.filter(a => a !== v) : [...p, v]);
+  const toggleColor           = v => setSelectedColors(p            => p.includes(v) ? p.filter(c => c !== v) : [...p, v]);
+  const toggleThickness       = v => setSelectedThicknessValues(p   => p.includes(v) ? p.filter(t => t !== v) : [...p, v]);
 
-  const handleAddCustomApplicationArea = (e) => {
-    e.preventDefault();
-    const val = newApplicationAreaInput.trim();
-    if (!val) return;
-    if (!applicationAreas.includes(val)) {
-      setApplicationAreas((prev) => {
-        const updated = [...prev, val];
-        persistentApplicationAreas = updated;
-        return updated;
-      });
-    }
-    if (!selectedApplicationAreas.includes(val)) {
-      setSelectedApplicationAreas((prev) => [...prev, val]);
-    }
-    setNewApplicationAreaInput('');
-  };
-  const handleAddCustomIndustry = (e) => {
+  // ── Add custom industry / application area ──────────────────────────────────
+  const handleAddCustomIndustry = e => {
     e.preventDefault();
     const val = newIndustryInput.trim();
     if (!val) return;
-    if (!industries.includes(val)) {
-      setIndustries((prev) => {
-        const updated = [...prev, val];
-        persistentIndustries = updated;
-        return updated;
-      });
-    }
-    if (!selectedIndustries.includes(val)) {
-      setSelectedIndustries((prev) => [...prev, val]);
-    }
+    if (!industries.includes(val)) setIndustries(p => { const u = [...p, val]; persistentIndustries = u; return u; });
+    if (!selectedIndustries.includes(val)) setSelectedIndustries(p => [...p, val]);
     setNewIndustryInput('');
   };
 
+  const handleAddCustomApplicationArea = e => {
+    e.preventDefault();
+    const val = newApplicationAreaInput.trim();
+    if (!val) return;
+    if (!applicationAreas.includes(val)) setApplicationAreas(p => { const u = [...p, val]; persistentApplicationAreas = u; return u; });
+    if (!selectedApplicationAreas.includes(val)) setSelectedApplicationAreas(p => [...p, val]);
+    setNewApplicationAreaInput('');
+  };
+
   // ── Tile file picker ────────────────────────────────────────────────────────
-  const handleTileChange = (e) => {
+  const handleTileChange = e => {
     const file = e.target.files[0];
     if (!file) { setTilePreview(null); setTileFileMeta(null); rawFileRef.current = null; return; }
     rawFileRef.current = file;
@@ -295,7 +410,7 @@ export default function UploadTileModal({ onClose, onSuccess }) {
   };
 
   // ── Submit ──────────────────────────────────────────────────────────────────
-  const handleSubmit = async (e) => {
+  const handleSubmit = async e => {
     e.preventDefault();
     setLoading(true);
     setError(null);
@@ -306,7 +421,7 @@ export default function UploadTileModal({ onClose, onSuccess }) {
 
       setUploadStage('Compressing image…');
       const compressedFile = await compressImage(rawFile);
-      setTileFileMeta((prev) => ({ ...prev, compressedSize: compressedFile.size }));
+      setTileFileMeta(p => ({ ...p, compressedSize: compressedFile.size }));
 
       setUploadStage('Preparing upload…');
       const sigRes = await fetch(`${BASE_URL}/sign-upload?folder=wonderfloor/tiles`);
@@ -321,10 +436,7 @@ export default function UploadTileModal({ onClose, onSuccess }) {
       cloudinaryForm.append('api_key', apiKey);
       cloudinaryForm.append('folder', folder);
 
-      const cloudRes = await fetch(
-        `https://api.cloudinary.com/v1_1/${cloudName}/image/upload`,
-        { method: 'POST', body: cloudinaryForm },
-      );
+      const cloudRes  = await fetch(`https://api.cloudinary.com/v1_1/${cloudName}/image/upload`, { method: 'POST', body: cloudinaryForm });
       const cloudData = await cloudRes.json();
       if (!cloudRes.ok) throw new Error(cloudData.error?.message || 'Cloudinary upload failed');
 
@@ -332,43 +444,30 @@ export default function UploadTileModal({ onClose, onSuccess }) {
       const formData = new FormData(formRef.current);
       formData.delete('tileImage');
       formData.append('imageUrl', cloudData.secure_url);
-      formData.append('userIndustry', JSON.stringify(selectedIndustries));
-      // formData.append('userIndustry', JSON.stringify(selectedIndustries));
-      formData.append('applicationArea', JSON.stringify(selectedApplicationAreas)); // ← ADD
-      // Format tags as JSON array
+
+      // Arrays as JSON
+      formData.append('userIndustry',    JSON.stringify(selectedIndustries));
+      formData.append('applicationArea', JSON.stringify(selectedApplicationAreas));
+      // colour & thickness already appended via hidden inputs from MultiSelectDropdown
+      // (the hidden inputs use name="colour" and name="thickness")
+
+      // Tags
       const rawTags = formData.get('tags');
-      if (rawTags) {
-        const tagsArray = rawTags.split(',').map(t => t.trim()).filter(Boolean);
-        formData.set('tags', JSON.stringify(tagsArray));
-      }
+      if (rawTags) formData.set('tags', JSON.stringify(rawTags.split(',').map(t => t.trim()).filter(Boolean)));
 
       const response = await fetch(`${BASE_URL}/upload/product`, { method: 'POST', body: formData });
-      const data = await response.json();
+      const data     = await response.json();
       if (!response.ok) throw new Error(data.error || 'Failed to save product');
 
-      // ── Backup Submit Fallback Auto-Saver ───────────────────────────────────
-      const savedNavCategory = formData.get('navCategory');
-      const savedCollection = formData.get('accordionCategory');
-      const savedColour = formData.get('colour');
-      const savedShade = formData.get('shade');
-      const savedThickness = formData.get('thickness'); // NEW
-      const savedStyle = formData.get('style');     // NEW
-      const savedPattern = formData.get('pattern');   // NEW
-
-      if (savedNavCategory && !persistentNavCategories.includes(savedNavCategory))
-        persistentNavCategories = [...persistentNavCategories, savedNavCategory];
-      if (savedCollection && !persistentCollections.includes(savedCollection))
-        persistentCollections = [...persistentCollections, savedCollection];
-      if (savedColour && !persistentColorFamilies.includes(savedColour))
-        persistentColorFamilies = [...persistentColorFamilies, savedColour];
-      if (savedShade && !persistentShadeOptions.includes(savedShade))
-        persistentShadeOptions = [...persistentShadeOptions, savedShade];
-      if (savedThickness && !persistentThicknessOptions.includes(savedThickness)) // NEW
-        persistentThicknessOptions = [...persistentThicknessOptions, savedThickness];
-      if (savedStyle && !persistentStyleOptions.includes(savedStyle))             // NEW
-        persistentStyleOptions = [...persistentStyleOptions, savedStyle];
-      if (savedPattern && !persistentPatternOptions.includes(savedPattern))       // NEW
-        persistentPatternOptions = [...persistentPatternOptions, savedPattern];
+      // Persist auto-saver
+      const sv = n => formData.get(n);
+      if (sv('navCategory')      && !persistentNavCategories.includes(sv('navCategory')))       persistentNavCategories    = [...persistentNavCategories,    sv('navCategory')];
+      if (sv('accordionCategory')&& !persistentCollections.includes(sv('accordionCategory')))   persistentCollections      = [...persistentCollections,      sv('accordionCategory')];
+      if (sv('shade')            && !persistentShadeOptions.includes(sv('shade')))               persistentShadeOptions     = [...persistentShadeOptions,     sv('shade')];
+      if (sv('style')            && !persistentStyleOptions.includes(sv('style')))               persistentStyleOptions     = [...persistentStyleOptions,     sv('style')];
+      if (sv('pattern')          && !persistentPatternOptions.includes(sv('pattern')))           persistentPatternOptions   = [...persistentPatternOptions,   sv('pattern')];
+      selectedColors.forEach(c  => { if (!persistentColorFamilies.includes(c))    persistentColorFamilies    = [...persistentColorFamilies,    c]; });
+      selectedThicknessValues.forEach(t => { if (!persistentThicknessOptions.includes(t)) persistentThicknessOptions = [...persistentThicknessOptions, t]; });
 
       setLoading(false);
       if (onSuccess) onSuccess();
@@ -387,176 +486,142 @@ export default function UploadTileModal({ onClose, onSuccess }) {
     const { originalSize, compressedSize } = tileFileMeta;
     if (!compressedSize)
       return <span className="text-[10px] text-slate-400 font-medium mt-0.5 block text-center">{formatBytes(originalSize)}</span>;
-    const savedPct = Math.round((1 - compressedSize / originalSize) * 100);
+    const pct = Math.round((1 - compressedSize / originalSize) * 100);
     return (
       <span className="text-[10px] font-semibold mt-0.5 block text-center text-[#0b9e7a]">
         {formatBytes(originalSize)} → {formatBytes(compressedSize)}
-        {savedPct > 0 && <span className="ml-1 opacity-70">({savedPct}% saved)</span>}
+        {pct > 0 && <span className="ml-1 opacity-70">({pct}% saved)</span>}
       </span>
     );
   };
 
+  // ─────────────────────────────────────────────────────────────────────────────
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-sm p-4 animate-fade-in">
       <div className="bg-white border border-slate-200 rounded-xl w-full max-w-3xl shadow-2xl flex flex-col max-h-[90vh]">
 
         {/* Header */}
         <div className="flex justify-between items-center px-6 py-4 border-b border-slate-100 shrink-0">
-          <h2 className="text-lg font-semibold text-slate-800">Add New Tile Product</h2>
-          <button
-            onClick={onClose}
-            className="text-slate-400 hover:text-slate-600 transition-colors cursor-pointer p-1 rounded-lg hover:bg-slate-50"
-          >
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <line x1="18" y1="6" x2="6" y2="18" />
-              <line x1="6" y1="6" x2="18" y2="18" />
-            </svg>
+          <h2 className="text-lg font-semibold text-slate-800">Add New Flooring Product</h2>
+          <button onClick={onClose}
+            className="text-slate-400 hover:text-slate-600 transition-colors cursor-pointer p-1 rounded-lg hover:bg-slate-50">
+            <XIcon size={20} />
           </button>
         </div>
 
-        {/* Form body */}
+        {/* Form */}
         <form ref={formRef} onSubmit={handleSubmit} className="overflow-y-auto p-6 flex flex-col gap-6 bg-slate-50/50">
 
           {error && (
-            <div className="bg-red-50 border border-red-200 text-red-600 p-3 rounded-lg text-sm font-medium">
-              {error}
-            </div>
+            <div className="bg-red-50 border border-red-200 text-red-600 p-3 rounded-lg text-sm font-medium">{error}</div>
           )}
 
-          {/* ── Section: Core Identity ── */}
+          {/* ── Core Details ────────────────────────────────────────────────── */}
           <div>
             <p className="text-[11px] font-bold uppercase tracking-widest text-slate-400 mb-3">Core Details</p>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
 
-              {/* Product Name */}
               <div>
                 <label className="block text-[13px] font-semibold text-slate-600 mb-1.5">Product Name</label>
-                <input
-                  type="text" name="name" required
-                  placeholder="e.g., Pastel Mint"
-                  className="w-full bg-white border border-slate-200 rounded-lg px-4 py-2.5 text-slate-800 text-sm focus:border-[#0b9e7a] focus:ring-1 focus:ring-[#0b9e7a] focus:outline-none transition-all placeholder:text-slate-400"
-                />
+                <input type="text" name="name" required placeholder="e.g., Pastel Mint"
+                  className="w-full bg-white border border-slate-200 rounded-lg px-4 py-2.5 text-slate-800 text-sm focus:border-[#0b9e7a] focus:ring-1 focus:ring-[#0b9e7a] focus:outline-none transition-all placeholder:text-slate-400" />
               </div>
 
-              {/* SKU */}
               <div>
                 <label className="block text-[13px] font-semibold text-slate-600 mb-1.5">SKU Code</label>
-                <input
-                  type="text" name="sku" required
-                  placeholder="e.g., WF/KR/0010"
-                  className="w-full bg-white border border-slate-200 rounded-lg px-4 py-2.5 text-slate-800 text-sm focus:border-[#0b9e7a] focus:ring-1 focus:ring-[#0b9e7a] focus:outline-none transition-all uppercase placeholder:text-slate-400"
-                />
+                <input type="text" name="sku" required placeholder="e.g., WF/KR/0010"
+                  className="w-full bg-white border border-slate-200 rounded-lg px-4 py-2.5 text-slate-800 text-sm focus:border-[#0b9e7a] focus:ring-1 focus:ring-[#0b9e7a] focus:outline-none transition-all uppercase placeholder:text-slate-400" />
               </div>
 
-              {/* Physical Size */}
               <div>
                 <label className="block text-[13px] font-semibold text-slate-600 mb-1.5">Physical Size</label>
-                <input
-                  type="text" name="size" required
-                  placeholder="e.g., 2mtr x 15mtr (Roll)"
-                  className="w-full bg-white border border-slate-200 rounded-lg px-4 py-2.5 text-slate-800 text-sm focus:border-[#0b9e7a] focus:ring-1 focus:ring-[#0b9e7a] focus:outline-none transition-all placeholder:text-slate-400"
-                />
+                <input type="text" name="size" required placeholder="e.g., 2mtr x 15mtr (Roll)"
+                  className="w-full bg-white border border-slate-200 rounded-lg px-4 py-2.5 text-slate-800 text-sm focus:border-[#0b9e7a] focus:ring-1 focus:ring-[#0b9e7a] focus:outline-none transition-all placeholder:text-slate-400" />
               </div>
 
-              {/* Searchable Tags — full width */}
               <div className="md:col-span-2 lg:col-span-3">
                 <label className="block text-[13px] font-semibold text-slate-600 mb-1.5">Searchable Tags (Comma Separated)</label>
-                <input
-                  type="text" name="tags"
-                  placeholder="e.g., mint, dark green, eco-friendly, pastel"
-                  className="w-full bg-white border border-slate-200 rounded-lg px-4 py-2.5 text-slate-800 text-sm focus:border-[#0b9e7a] focus:ring-1 focus:ring-[#0b9e7a] focus:outline-none transition-all placeholder:text-slate-400"
-                />
-                <span className="text-[10px] text-slate-400 mt-1 block">
-                  Add alternate names or keywords to help users find this tile in search.
-                </span>
+                <input type="text" name="tags" placeholder="e.g., mint, dark green, eco-friendly, pastel"
+                  className="w-full bg-white border border-slate-200 rounded-lg px-4 py-2.5 text-slate-800 text-sm focus:border-[#0b9e7a] focus:ring-1 focus:ring-[#0b9e7a] focus:outline-none transition-all placeholder:text-slate-400" />
+                <span className="text-[10px] text-slate-400 mt-1 block">Add alternate names or keywords to help users find this tile in search.</span>
               </div>
 
             </div>
           </div>
 
-          {/* ── Section: Classification ── */}
+          {/* ── Classification ──────────────────────────────────────────────── */}
           <div>
             <p className="text-[11px] font-bold uppercase tracking-widest text-slate-400 mb-3">Classification</p>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
 
               <ToggleSelectField
-                label="Main Nav Category"
-                name="navCategory"
+                label="Main Nav Category" name="navCategory"
                 options={navCategories}
-                onAddOption={(val) => setNavCategories((prev) => { const u = [...prev, val]; persistentNavCategories = u; return u; })}
-                onRemoveOption={(val) => setNavCategories((prev) => { const u = prev.filter(i => i !== val); persistentNavCategories = u; return u; })}
-                selectPlaceholder="Select tab…"
-                createPlaceholder="e.g., Outdoor Flooring"
+                onAddOption={v => setNavCategories(p => { const u = [...p, v]; persistentNavCategories = u; return u; })}
+                onRemoveOption={v => setNavCategories(p => { const u = p.filter(i => i !== v); persistentNavCategories = u; return u; })}
+                selectPlaceholder="Select tab…" createPlaceholder="e.g., Outdoor Flooring"
               />
 
               <ToggleSelectField
-                label="Product Collection"
-                name="accordionCategory"
+                label="Product Collection" name="accordionCategory"
                 options={collections}
-                onAddOption={(val) => setCollections((prev) => { const u = [...prev, val]; persistentCollections = u; return u; })}
-                onRemoveOption={(val) => setCollections((prev) => { const u = prev.filter(i => i !== val); persistentCollections = u; return u; })}
-                selectPlaceholder="Select collection…"
-                createPlaceholder="Enter new collection name"
+                onAddOption={v => setCollections(p => { const u = [...p, v]; persistentCollections = u; return u; })}
+                onRemoveOption={v => setCollections(p => { const u = p.filter(i => i !== v); persistentCollections = u; return u; })}
+                selectPlaceholder="Select collection…" createPlaceholder="Enter new collection name"
               />
 
               <ToggleSelectField
-                label="Color"
-                name="colour"
-                options={colorFamilies}
-                onAddOption={(val) => setColorFamilies((prev) => { const u = [...prev, val]; persistentColorFamilies = u; return u; })}
-                onRemoveOption={(val) => setColorFamilies((prev) => { const u = prev.filter(i => i !== val); persistentColorFamilies = u; return u; })}
-                selectPlaceholder="Select color…"
-                createPlaceholder="e.g., Terra Cotta"
-              />
-
-              <ToggleSelectField
-                label="Shade"
-                name="shade"
+                label="Shade" name="shade"
                 options={shadeOptions}
-                onAddOption={(val) => setShadeOptions((prev) => { const u = [...prev, val]; persistentShadeOptions = u; return u; })}
-                onRemoveOption={(val) => setShadeOptions((prev) => { const u = prev.filter(i => i !== val); persistentShadeOptions = u; return u; })}
-                selectPlaceholder="Select shade…"
-                createPlaceholder="e.g., Extra Dark"
+                onAddOption={v => setShadeOptions(p => { const u = [...p, v]; persistentShadeOptions = u; return u; })}
+                onRemoveOption={v => setShadeOptions(p => { const u = p.filter(i => i !== v); persistentShadeOptions = u; return u; })}
+                selectPlaceholder="Select shade…" createPlaceholder="e.g., Extra Dark"
               />
 
-              {/* ── NEW: Thickness ── */}
-              <ToggleSelectField
-                label="Thickness"
-                name="thickness"
-                required={false}
+              {/* ── Color — multi-select dropdown ── */}
+              <MultiSelectDropdown
+                label="Color" name="colour"
+                options={colorFamilies}
+                selected={selectedColors}
+                onToggle={toggleColor}
+                onAddOption={v => setColorFamilies(p => { const u = [...p, v]; persistentColorFamilies = u; return u; })}
+                onRemoveOption={v => { setColorFamilies(p => { const u = p.filter(i => i !== v); persistentColorFamilies = u; return u; }); setSelectedColors(p => p.filter(c => c !== v)); }}
+                placeholder="Select color(s)…"
+                addPlaceholder="e.g., Terra Cotta"
+                showSwatches={true}
+              />
+
+              {/* ── Thickness — multi-select dropdown ── */}
+              <MultiSelectDropdown
+                label="Thickness" name="thickness"
                 options={thicknessOptions}
-                onAddOption={(val) => setThicknessOptions((prev) => { const u = [...prev, val]; persistentThicknessOptions = u; return u; })}
-                onRemoveOption={(val) => setThicknessOptions((prev) => { const u = prev.filter(i => i !== val); persistentThicknessOptions = u; return u; })}
-                selectPlaceholder="Select thickness…"
-                createPlaceholder="e.g., 2.5mm or 1.0mm, 2.0mm"
+                selected={selectedThicknessValues}
+                onToggle={toggleThickness}
+                onAddOption={v => setThicknessOptions(p => { const u = [...p, v]; persistentThicknessOptions = u; return u; })}
+                onRemoveOption={v => { setThicknessOptions(p => { const u = p.filter(i => i !== v); persistentThicknessOptions = u; return u; }); setSelectedThicknessValues(p => p.filter(t => t !== v)); }}
+                placeholder="Select thickness(es)…"
+                addPlaceholder="e.g., 4.5mm"
+                showSwatches={false}
               />
 
-              {/* ── NEW: Style ── */}
               <ToggleSelectField
-                label="Style"
-                name="style"
-                required={false}
+                label="Style" name="style" required={false}
                 options={styleOptions}
-                onAddOption={(val) => setStyleOptions((prev) => { const u = [...prev, val]; persistentStyleOptions = u; return u; })}
-                onRemoveOption={(val) => setStyleOptions((prev) => { const u = prev.filter(i => i !== val); persistentStyleOptions = u; return u; })}
-                selectPlaceholder="Select style…"
-                createPlaceholder="e.g., Cushion Vinyl"
+                onAddOption={v => setStyleOptions(p => { const u = [...p, v]; persistentStyleOptions = u; return u; })}
+                onRemoveOption={v => setStyleOptions(p => { const u = p.filter(i => i !== v); persistentStyleOptions = u; return u; })}
+                selectPlaceholder="Select style…" createPlaceholder="e.g., Cushion Vinyl"
               />
 
-              {/* ── NEW: Pattern / Layout ── */}
               <ToggleSelectField
-                label="Pattern / Layout"
-                name="pattern"
-                required={false}
+                label="Pattern / Layout" name="pattern" required={false}
                 options={patternOptions}
-                onAddOption={(val) => setPatternOptions((prev) => { const u = [...prev, val]; persistentPatternOptions = u; return u; })}
-                onRemoveOption={(val) => setPatternOptions((prev) => { const u = prev.filter(i => i !== val); persistentPatternOptions = u; return u; })}
-                selectPlaceholder="Select pattern…"
-                createPlaceholder="e.g., Directional"
+                onAddOption={v => setPatternOptions(p => { const u = [...p, v]; persistentPatternOptions = u; return u; })}
+                onRemoveOption={v => setPatternOptions(p => { const u = p.filter(i => i !== v); persistentPatternOptions = u; return u; })}
+                selectPlaceholder="Select pattern…" createPlaceholder="e.g., Directional"
               />
 
-              {/* ── NEW: Product Link — full width ── */}
-              <div className="md:col-span-2 lg:col-span-3">
+              {/* ── Product Link ── */}
+              <div className="md:col-span-2 lg:col-span-2">
                 <label className="block text-[13px] font-semibold text-slate-600 mb-1.5">Product Link</label>
                 <div className="relative">
                   <span className="absolute inset-y-0 left-3.5 flex items-center pointer-events-none text-slate-400">
@@ -565,136 +630,90 @@ export default function UploadTileModal({ onClose, onSuccess }) {
                       <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" />
                     </svg>
                   </span>
-                  <input
-                    type="url" name="productLink"
-                    placeholder="https://example.com/product-page"
-                    className="w-full bg-white border border-slate-200 rounded-lg pl-9 pr-4 py-2.5 text-slate-800 text-sm focus:border-[#0b9e7a] focus:ring-1 focus:ring-[#0b9e7a] focus:outline-none transition-all placeholder:text-slate-400"
-                  />
+                  <input type="url" name="productLink" placeholder="https://example.com/product-page"
+                    className="w-full bg-white border border-slate-200 rounded-lg pl-9 pr-4 py-2.5 text-slate-800 text-sm focus:border-[#0b9e7a] focus:ring-1 focus:ring-[#0b9e7a] focus:outline-none transition-all placeholder:text-slate-400" />
                 </div>
-                <span className="text-[10px] text-slate-400 mt-1 block">
-                  Optional URL to a product datasheet, catalogue page, or external listing.
-                </span>
+                <span className="text-[10px] text-slate-400 mt-1 block">Optional URL to a product datasheet, catalogue page, or external listing.</span>
               </div>
 
             </div>
           </div>
 
-          {/* ── Recommended Industries ── */}
+          {/* ── User Industries ─────────────────────────────────────────────── */}
           <div>
             <p className="text-[11px] font-bold uppercase tracking-widest text-slate-400 mb-3">User Industries</p>
             <div className="bg-white border border-slate-200 rounded-lg p-4 shadow-sm flex flex-col gap-4">
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-                {industries.map((ind) => (
+                {industries.map(ind => (
                   <div key={ind} className="relative group flex items-center justify-between py-1 px-2 border border-transparent hover:border-slate-100 rounded-lg transition-all">
                     <label className="flex items-center gap-2.5 cursor-pointer flex-1 min-w-0">
                       <input type="checkbox" className="hidden" checked={selectedIndustries.includes(ind)} onChange={() => toggleIndustry(ind)} />
                       <div className={`w-4 h-4 rounded flex items-center justify-center border shrink-0 transition-all ${selectedIndustries.includes(ind) ? 'bg-[#0b9e7a] border-[#0b9e7a]' : 'bg-slate-50 border-slate-300 group-hover:border-slate-400'}`}>
-                        {selectedIndustries.includes(ind) && (
-                          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3">
-                            <polyline points="20 6 9 17 4 12" />
-                          </svg>
-                        )}
+                        {selectedIndustries.includes(ind) && <CheckIcon />}
                       </div>
                       <span className="text-xs font-medium text-slate-600 group-hover:text-slate-900 transition-colors truncate pr-4">{ind}</span>
                     </label>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setIndustries((prev) => { const u = prev.filter(i => i !== ind); persistentIndustries = u; return u; });
-                        setSelectedIndustries((prev) => prev.filter(i => i !== ind));
-                      }}
-                      className="text-slate-400 hover:text-red-500 p-0.5 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap"
-                      title={`Remove ${ind}`}
-                    >
-                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                        <line x1="18" y1="6" x2="6" y2="18" />
-                        <line x1="6" y1="6" x2="18" y2="18" />
-                      </svg>
+                    <button type="button"
+                      onClick={() => { setIndustries(p => { const u = p.filter(i => i !== ind); persistentIndustries = u; return u; }); setSelectedIndustries(p => p.filter(i => i !== ind)); }}
+                      className="text-slate-300 hover:text-red-500 p-0.5 rounded opacity-0 group-hover:opacity-100 transition-opacity">
+                      <XIcon size={12} />
                     </button>
                   </div>
                 ))}
               </div>
-
               <div className="flex gap-2 pt-3 border-t border-slate-100">
-                <input
-                  type="text"
-                  value={newIndustryInput}
-                  onChange={(e) => setNewIndustryInput(e.target.value)}
+                <input type="text" value={newIndustryInput} onChange={e => setNewIndustryInput(e.target.value)}
                   placeholder="Type other custom industry recommendation..."
-                  className="flex-1 bg-slate-50 border border-slate-200 rounded-lg px-3 py-1.5 text-xs text-slate-800 focus:bg-white focus:border-[#0b9e7a] focus:outline-none transition-all placeholder:text-slate-400"
-                />
-                <button
-                  type="button"
-                  onClick={handleAddCustomIndustry}
-                  className="px-4 py-1.5 bg-slate-100 hover:bg-[#0b9e7a] text-slate-600 hover:text-white rounded-lg text-xs font-semibold transition-all cursor-pointer whitespace-nowrap"
-                >
+                  className="flex-1 bg-slate-50 border border-slate-200 rounded-lg px-3 py-1.5 text-xs text-slate-800 focus:bg-white focus:border-[#0b9e7a] focus:outline-none transition-all placeholder:text-slate-400" />
+                <button type="button" onClick={handleAddCustomIndustry}
+                  className="px-4 py-1.5 bg-slate-100 hover:bg-[#0b9e7a] text-slate-600 hover:text-white rounded-lg text-xs font-semibold transition-all cursor-pointer whitespace-nowrap">
                   + Add Custom
                 </button>
               </div>
             </div>
           </div>
-          {/* ── Application Areas ── */}
+
+          {/* ── Application Areas ───────────────────────────────────────────── */}
           <div>
             <p className="text-[11px] font-bold uppercase tracking-widest text-slate-400 mb-3">Application Areas</p>
             <div className="bg-white border border-slate-200 rounded-lg p-4 shadow-sm flex flex-col gap-4">
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-                {applicationAreas.map((area) => (
+                {applicationAreas.map(area => (
                   <div key={area} className="relative group flex items-center justify-between py-1 px-2 border border-transparent hover:border-slate-100 rounded-lg transition-all">
                     <label className="flex items-center gap-2.5 cursor-pointer flex-1 min-w-0">
                       <input type="checkbox" className="hidden" checked={selectedApplicationAreas.includes(area)} onChange={() => toggleApplicationArea(area)} />
                       <div className={`w-4 h-4 rounded flex items-center justify-center border shrink-0 transition-all ${selectedApplicationAreas.includes(area) ? 'bg-[#0b9e7a] border-[#0b9e7a]' : 'bg-slate-50 border-slate-300 group-hover:border-slate-400'}`}>
-                        {selectedApplicationAreas.includes(area) && (
-                          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3">
-                            <polyline points="20 6 9 17 4 12" />
-                          </svg>
-                        )}
+                        {selectedApplicationAreas.includes(area) && <CheckIcon />}
                       </div>
                       <span className="text-xs font-medium text-slate-600 group-hover:text-slate-900 transition-colors truncate pr-4">{area}</span>
                     </label>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setApplicationAreas((prev) => { const u = prev.filter(a => a !== area); persistentApplicationAreas = u; return u; });
-                        setSelectedApplicationAreas((prev) => prev.filter(a => a !== area));
-                      }}
-                      className="text-slate-400 hover:text-red-500 p-0.5 rounded opacity-0 group-hover:opacity-100 transition-opacity"
-                      title={`Remove ${area}`}
-                    >
-                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                        <line x1="18" y1="6" x2="6" y2="18" />
-                        <line x1="6" y1="6" x2="18" y2="18" />
-                      </svg>
+                    <button type="button"
+                      onClick={() => { setApplicationAreas(p => { const u = p.filter(a => a !== area); persistentApplicationAreas = u; return u; }); setSelectedApplicationAreas(p => p.filter(a => a !== area)); }}
+                      className="text-slate-300 hover:text-red-500 p-0.5 rounded opacity-0 group-hover:opacity-100 transition-opacity">
+                      <XIcon size={12} />
                     </button>
                   </div>
                 ))}
               </div>
-
               <div className="flex gap-2 pt-3 border-t border-slate-100">
-                <input
-                  type="text"
-                  value={newApplicationAreaInput}
-                  onChange={(e) => setNewApplicationAreaInput(e.target.value)}
+                <input type="text" value={newApplicationAreaInput} onChange={e => setNewApplicationAreaInput(e.target.value)}
                   placeholder="Type a custom application area..."
-                  className="flex-1 bg-slate-50 border border-slate-200 rounded-lg px-3 py-1.5 text-xs text-slate-800 focus:bg-white focus:border-[#0b9e7a] focus:outline-none transition-all placeholder:text-slate-400"
-                />
-                <button
-                  type="button"
-                  onClick={handleAddCustomApplicationArea}
-                  className="px-4 py-1.5 bg-slate-100 hover:bg-[#0b9e7a] text-slate-600 hover:text-white rounded-lg text-xs font-semibold transition-all cursor-pointer whitespace-nowrap"
-                >
+                  className="flex-1 bg-slate-50 border border-slate-200 rounded-lg px-3 py-1.5 text-xs text-slate-800 focus:bg-white focus:border-[#0b9e7a] focus:outline-none transition-all placeholder:text-slate-400" />
+                <button type="button" onClick={handleAddCustomApplicationArea}
+                  className="px-4 py-1.5 bg-slate-100 hover:bg-[#0b9e7a] text-slate-600 hover:text-white rounded-lg text-xs font-semibold transition-all cursor-pointer whitespace-nowrap">
                   + Add Custom
                 </button>
               </div>
             </div>
           </div>
-          {/* ── Description + Texture ── */}
+
+          {/* ── Media & Description ─────────────────────────────────────────── */}
           <div>
             <p className="text-[11px] font-bold uppercase tracking-widest text-slate-400 mb-3">Media & Description</p>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
               <div>
                 <label className="block text-[13px] font-semibold text-slate-600 mb-1.5">Product Description</label>
-                <textarea
-                  name="description" rows="5"
+                <textarea name="description" rows="5"
                   placeholder="Enter product description for the details modal..."
                   className="w-full h-32 bg-white border border-slate-200 rounded-xl px-4 py-3 text-slate-800 text-sm focus:border-[#0b9e7a] focus:ring-1 focus:ring-[#0b9e7a] focus:outline-none transition-all resize-none placeholder:text-slate-400 shadow-sm"
                 />
@@ -703,11 +722,8 @@ export default function UploadTileModal({ onClose, onSuccess }) {
               <div>
                 <label className="block text-[13px] font-semibold text-slate-600 mb-1.5">Tile Texture Image (JPG/PNG)</label>
                 <div className="relative w-full h-32 bg-white border-2 border-dashed border-slate-200 hover:border-[#0b9e7a] rounded-xl flex items-center justify-center overflow-hidden transition-all group cursor-pointer shadow-sm">
-                  <input
-                    type="file" accept="image/*" required
-                    onChange={handleTileChange}
-                    className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-20"
-                  />
+                  <input type="file" accept="image/*" required onChange={handleTileChange}
+                    className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-20" />
                   {tilePreview ? (
                     <>
                       <img src={tilePreview} alt="Tile Texture Preview" className="w-full h-full object-cover" />
@@ -719,8 +735,7 @@ export default function UploadTileModal({ onClose, onSuccess }) {
                     <div className="flex flex-col items-center pointer-events-none text-slate-400 group-hover:text-[#0b9e7a] transition-colors">
                       <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="mb-2">
                         <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-                        <polyline points="17 8 12 3 7 8" />
-                        <line x1="12" y1="3" x2="12" y2="15" />
+                        <polyline points="17 8 12 3 7 8" /><line x1="12" y1="3" x2="12" y2="15" />
                       </svg>
                       <span className="text-xs font-medium">Upload seamless texture</span>
                     </div>
@@ -731,19 +746,14 @@ export default function UploadTileModal({ onClose, onSuccess }) {
             </div>
           </div>
 
-          {/* ── Footer Actions ── */}
+          {/* ── Footer ──────────────────────────────────────────────────────── */}
           <div className="flex justify-end gap-3 pt-4 border-t border-slate-200 mt-2 shrink-0">
-            <button
-              type="button" onClick={onClose}
-              className="px-5 py-2.5 rounded-lg text-[13px] font-semibold text-slate-500 hover:text-slate-800 hover:bg-slate-100 transition-colors cursor-pointer"
-            >
+            <button type="button" onClick={onClose}
+              className="px-5 py-2.5 rounded-lg text-[13px] font-semibold text-slate-500 hover:text-slate-800 hover:bg-slate-100 transition-colors cursor-pointer">
               Cancel
             </button>
-            <button
-              type="submit"
-              disabled={loading}
-              className="px-6 py-2.5 rounded-lg text-[13px] font-semibold text-white bg-[#0b9e7a] hover:bg-[#098264] transition-colors shadow-sm shadow-[#0b9e7a]/20 disabled:opacity-50 cursor-pointer flex items-center gap-2"
-            >
+            <button type="submit" disabled={loading}
+              className="px-6 py-2.5 rounded-lg text-[13px] font-semibold text-white bg-[#0b9e7a] hover:bg-[#098264] transition-colors shadow-sm shadow-[#0b9e7a]/20 disabled:opacity-50 cursor-pointer flex items-center gap-2">
               {loading ? (
                 <>
                   <svg className="animate-spin" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
@@ -751,9 +761,7 @@ export default function UploadTileModal({ onClose, onSuccess }) {
                   </svg>
                   {uploadStage || 'Uploading…'}
                 </>
-              ) : (
-                'Save Product'
-              )}
+              ) : 'Save Product'}
             </button>
           </div>
 
