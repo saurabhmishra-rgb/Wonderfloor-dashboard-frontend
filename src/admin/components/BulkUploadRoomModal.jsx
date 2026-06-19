@@ -159,8 +159,10 @@ export default function BulkUploadRoomModal({ onClose, onSuccess }) {
     .filter(name => name && !imageFiles[name]);
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-sm p-4">
-      <div className="bg-white border border-slate-200 rounded-xl w-full max-w-3xl shadow-2xl flex flex-col max-h-[92vh]">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-sm p-4"
+       onClick={onClose}>
+      <div className="bg-white border border-slate-200 rounded-xl w-full max-w-3xl shadow-2xl flex flex-col max-h-[92vh]"
+          onClick={e => e.stopPropagation()}>
 
         {/* Header */}
         <div className="flex justify-between items-center px-6 py-4 border-b border-slate-100 shrink-0">
