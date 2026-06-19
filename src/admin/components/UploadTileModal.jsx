@@ -5,10 +5,13 @@ const BASE_URL = import.meta.env.VITE_NODE_BACKEND_URL || 'https://wonderfloor-d
 // ─── Initial data constants ───────────────────────────────────────────────────
 const INITIAL_NAV_CATEGORIES = ['Flooring Products', 'Luxury Vinyl Tile'];
 const INITIAL_COLLECTIONS = [
-  'Braavo', 'Krayons', 'Durofloor', 'Siggma', 'Orbit', 'Stoneland Monza',
-  'Meteor', 'Aventus', 'Timberworld 1.5mm', 'Timberland Exotica 2mm',
-  'Timberland Maestro 3mm', 'Timberland Widex', 'Timberland Herringbone',
-  'Grandeure Supreme',
+   'Braavo', 'Krayons', 'Durofloor', 'Siggma', 'Orbit', 'Stoneland Monza', 
+  'Antique', 'Adventus', 'Duratek', 'Galaxxy', 'GDP', 'Hi-Tech', 'Luxuria', 
+  'Matrixx', 'Meteor', 'Ornate', 'Oriion', 'Rangolie', 'Rhythm', 'Robust', 
+  'Traction / Safety', 'Trendo Wood', 'Trendo Chips', 'Uttsav',  
+  'Aventus', 'Timberworld 1.5mm', 'Timberland Exotica 2mm', 
+  'Timberland Maestro 3mm', 'Timberland Herringbone', 'Timberland Widex', 
+  'Grandeure Supreme'
 ];
 const INITIAL_SHADES   = ['Light', 'Medium', 'Dark'];
 const INITIAL_COLOR_FAMILIES = [
