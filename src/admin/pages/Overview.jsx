@@ -1,5 +1,5 @@
 // Overview.jsx
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import UploadRoomModal from '../components/UploadRoomModal';
 import UploadTileModal from '../components/UploadTileModal';
@@ -20,7 +20,7 @@ const Icon = {
   logout: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" /><polyline points="16 17 21 12 16 7" /><line x1="21" y1="12" x2="9" y2="12" /></svg>,
 };
 
-const ITEMS_PER_PAGE = 15;
+const ITEMS_PER_PAGE = 20;
 
 const navItems = [
   { label: 'Dashboard Overview', icon: 'grid', key: 'overview', path: '/admin', group: null },
@@ -43,10 +43,14 @@ export default function Overview() {
   const [uploadLimit, setUploadLimit] = useState(ITEMS_PER_PAGE);
   const [hasMore, setHasMore] = useState(true);
 
-  const [dashboardData, setDashboardData] = useState({
+ const [dashboardData, setDashboardData] = useState({
     stats: { totalRooms: 0, totalProducts: 0, totalRecords: 0 },
     recentUploads: [],
   });
+
+  // ── Refs for infinite scroll ──
+  const scrollContainerRef = useRef(null);
+  const loadMoreRef = useRef(null);
 
   const navigate = useNavigate();
   const location = useLocation();
@@ -70,16 +74,41 @@ export default function Overview() {
     }
   }
 
-  // ── Load more handler ──
   function handleLoadMore() {
     const newLimit = uploadLimit + ITEMS_PER_PAGE;
     setUploadLimit(newLimit);
     fetchDashboardStats(newLimit, true);
   }
 
-  useEffect(() => {
+useEffect(() => {
     fetchDashboardStats(uploadLimit);
   }, []);
+
+  // ── Auto-load more on scroll ──
+  useEffect(() => {
+    if (!hasMore || loading) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting && !loadingMore) {
+          handleLoadMore();
+        }
+      },
+      {
+        root: scrollContainerRef.current, // scroll relative to your custom scroll div, not the window
+        rootMargin: '200px',              // start loading 200px before it's actually visible
+        threshold: 0,
+      }
+    );
+
+    const target = loadMoreRef.current;
+    if (target) observer.observe(target);
+
+    return () => {
+      if (target) observer.unobserve(target);
+    };
+  }, [hasMore, loading, loadingMore, uploadLimit]);
+
   const TYPE_LABEL = {
     Room: 'Demo Rooms',
     Tile: 'Flooring Product',
@@ -193,7 +222,7 @@ export default function Overview() {
         </header>
 
         {/* Scrollable content */}
-        <div className="flex-1 overflow-auto p-4 md:p-6 md:px-7">
+       <div ref={scrollContainerRef} className="flex-1 overflow-auto p-4 md:p-6 md:px-7">
 
           {/* ── METRIC CARDS ── */}
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3.5 mb-7">
@@ -388,35 +417,16 @@ export default function Overview() {
               </div>
             )}
 
-            {/* ── LOAD MORE / END OF LIST ── */}
-            {!loading && dashboardData.recentUploads.length > 0 && (
-              <div className="flex items-center justify-center px-5 py-4 border-t border-[#f0f0f0]">
-                {hasMore ? (
-                  <button
-                    onClick={handleLoadMore}
-                    disabled={loadingMore}
-                    className="flex items-center gap-2 px-5 py-2 bg-[#f4f4f5] hover:bg-[#ebebeb] border border-[#e0e0e0] rounded-lg text-[13px] font-medium text-[#555555] transition-all disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
-                  >
-                    {loadingMore ? (
-                      <>
-                        <svg className="animate-spin w-3.5 h-3.5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                          <path d="M21 12a9 9 0 1 1-6.219-8.56" />
-                        </svg>
-                        Loading…
-                      </>
-                    ) : (
-                      <>
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                          <polyline points="6 9 12 15 18 9" />
-                        </svg>
-                        Load more  ({dashboardData.recentUploads.length} loaded so far)
-                      </>
-                    )}
-                  </button>
-                ) : (
-                  <span className="text-[12px] text-[#aaaaaa]">
-                    {/* ✓ All {dashboardData.recentUploads.length} uploads shown */}
-                  </span>
+            {/* ── AUTO-LOAD SENTINEL (no button, triggers on scroll) ── */}
+            {!loading && dashboardData.recentUploads.length > 0 && hasMore && (
+              <div ref={loadMoreRef} className="flex items-center justify-center px-5 py-5 border-t border-[#f0f0f0]">
+                {loadingMore && (
+                  <div className="flex items-center gap-2 text-[12px] text-[#888888]">
+                    <svg className="animate-spin w-3.5 h-3.5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                      <path d="M21 12a9 9 0 1 1-6.219-8.56" />
+                    </svg>
+                    Loading more…
+                  </div>
                 )}
               </div>
             )}
