@@ -17,6 +17,13 @@ const INITIAL_COLOR_FAMILIES  = [
   'Grey', 'Beige', 'Brown', 'Black', 'White',
   'Blue', 'Green', 'Red', 'Orange', 'Yellow', 'Purple', 'Pink',
 ];
+
+// ── Color swatch map (vibrant dots shown next to each color name) ──────────────
+const COLOR_SWATCH_MAP = {
+  Grey: '#9CA3AF', Beige: '#D4B483', Brown: '#92400E', Black: '#374151',
+  White: '#E2E8F0', Blue: '#3B82F6', Green: '#10B981', Red: '#EF4444',
+  Orange: '#F97316', Yellow: '#EAB308', Purple: '#8B5CF6', Pink: '#EC4899',
+};
 const INITIAL_THICKNESS_OPTIONS = [
   '1.0mm', '1.5mm', '2.0mm', '2.5mm', '3.0mm', '3.5mm', '4.0mm', '5.0mm',
 ];
@@ -57,6 +64,152 @@ const inputCls =
   'w-full px-3 py-2 text-[13px] text-gray-800 bg-white border border-gray-200 rounded-lg ' +
   'focus:outline-none focus:border-[#0b9e7a] focus:ring-2 focus:ring-[#0b9e7a]/10 ' +
   'placeholder-gray-300 transition-all duration-150';
+
+// ─── Small icon helpers (for MultiSelectDropdown) ─────────────────────────────
+function XIcon({ size = 14 }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+      <line x1="18" y1="6" x2="6" y2="18" />
+      <line x1="6" y1="6" x2="18" y2="18" />
+    </svg>
+  );
+}
+function CheckIcon({ size = 10 }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3">
+      <polyline points="20 6 9 17 4 12" />
+    </svg>
+  );
+}
+function ChevronIcon({ open }) {
+  return (
+    <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"
+      className={`transition-transform duration-200 ${open ? 'rotate-180' : ''}`}>
+      <path d="M19 9l-7 7-7-7" />
+    </svg>
+  );
+}
+
+// ─── MultiSelectDropdown (checkbox-based multi-select, gray theme to match this file) ──
+function MultiSelectDropdown({
+  label, options, selected, onToggle, onAddOption, onRemoveOption,
+  placeholder = 'Select…', addPlaceholder, showSwatches = false,
+}) {
+  const [isOpen, setIsOpen] = useState(false);
+  const [newInput, setNewInput] = useState('');
+
+  const handleAdd = () => {
+    const val = newInput.trim();
+    if (!val) return;
+    if (!options.includes(val)) onAddOption(val);
+    if (!selected.includes(val)) onToggle(val);
+    setNewInput('');
+  };
+
+  return (
+    <div>
+      <div className="flex justify-between items-center mb-1">
+        <Label>{label}</Label>
+        {selected.length > 0 && (
+          <span className="text-[10px] text-[#0b9e7a] font-semibold">{selected.length} selected</span>
+        )}
+      </div>
+
+      <div className="relative">
+        <div onClick={() => setIsOpen(p => !p)}
+          className={`w-full bg-white border rounded-lg px-3 py-2 text-[13px] transition-all flex justify-between items-center cursor-pointer select-none
+            ${isOpen ? 'border-[#0b9e7a] ring-2 ring-[#0b9e7a]/10' : 'border-gray-200 hover:border-gray-300'}`}>
+          {selected.length > 0 ? (
+            <span className="flex items-center gap-1.5 flex-1 min-w-0">
+              {showSwatches && selected.slice(0, 4).map(s => (
+                <span key={s} className="w-3 h-3 rounded-full border border-gray-200 shrink-0"
+                  style={{ backgroundColor: COLOR_SWATCH_MAP[s] || '#94a3b8' }} />
+              ))}
+              <span className="truncate text-gray-800">
+                {selected.length <= 2 ? selected.join(', ') : `${selected.slice(0, 2).join(', ')} +${selected.length - 2} more`}
+              </span>
+            </span>
+          ) : (
+            <span className="text-gray-300">{placeholder}</span>
+          )}
+          <span className="text-gray-400 ml-2 shrink-0"><ChevronIcon open={isOpen} /></span>
+        </div>
+
+        {isOpen && (
+          <>
+            <div className="fixed inset-0 z-20" onClick={() => setIsOpen(false)} />
+            <div className="absolute z-30 w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg overflow-hidden">
+              <ul className="max-h-48 overflow-y-auto py-1">
+                {options.map(opt => {
+                  const checked = selected.includes(opt);
+                  const swatch = showSwatches ? (COLOR_SWATCH_MAP[opt] || null) : null;
+                  return (
+                    <li key={opt}
+                      className="group flex items-center justify-between px-3 py-2 hover:bg-gray-50 cursor-pointer"
+                      onClick={() => onToggle(opt)}>
+                      <span className="flex items-center gap-2.5 flex-1 min-w-0">
+                        <span className={`w-4 h-4 rounded border flex items-center justify-center shrink-0 transition-all
+                          ${checked ? 'bg-[#0b9e7a] border-[#0b9e7a]' : 'bg-gray-50 border-gray-300 group-hover:border-gray-400'}`}>
+                          {checked && <CheckIcon />}
+                        </span>
+                        {swatch && (
+                          <span className="w-3.5 h-3.5 rounded-full border border-gray-200 shrink-0"
+                            style={{ backgroundColor: swatch }} />
+                        )}
+                        <span className="text-[13px] text-gray-700 truncate">{opt}</span>
+                      </span>
+                      <button type="button"
+                        onClick={e => { e.stopPropagation(); onRemoveOption(opt); if (checked) onToggle(opt); }}
+                        className="text-gray-300 hover:text-red-500 p-1 rounded opacity-0 group-hover:opacity-100 transition-all ml-1 shrink-0"
+                        title={`Remove ${opt}`}>
+                        <XIcon size={12} />
+                      </button>
+                    </li>
+                  );
+                })}
+              </ul>
+
+              <div className="border-t border-gray-100 p-2 flex gap-2 bg-gray-50/60">
+                <input
+                  type="text"
+                  value={newInput}
+                  onChange={e => setNewInput(e.target.value)}
+                  onKeyDown={e => e.key === 'Enter' && (e.preventDefault(), handleAdd())}
+                  placeholder={addPlaceholder || 'Add custom…'}
+                  onClick={e => e.stopPropagation()}
+                  className="flex-1 bg-white border border-gray-200 rounded-md px-3 py-1.5 text-xs text-gray-800 focus:border-[#0b9e7a] focus:outline-none transition-all placeholder:text-gray-400"
+                />
+                <button type="button" onClick={e => { e.stopPropagation(); handleAdd(); }}
+                  className="px-3 py-1.5 bg-gray-100 hover:bg-[#0b9e7a] text-gray-600 hover:text-white rounded-md text-xs font-semibold transition-all cursor-pointer whitespace-nowrap">
+                  + Add
+                </button>
+              </div>
+            </div>
+          </>
+        )}
+      </div>
+
+      {selected.length > 0 && (
+        <div className="flex flex-wrap gap-1.5 mt-2">
+          {selected.map(s => (
+            <span key={s}
+              className="inline-flex items-center gap-1 bg-[#0b9e7a]/10 text-[#0b9e7a] text-[11px] font-semibold px-2 py-0.5 rounded-full">
+              {showSwatches && (
+                <span className="w-2.5 h-2.5 rounded-full border border-white/40 shrink-0"
+                  style={{ backgroundColor: COLOR_SWATCH_MAP[s] || '#94a3b8' }} />
+              )}
+              {s}
+              <button type="button" onClick={() => onToggle(s)}
+                className="text-[#0b9e7a]/50 hover:text-[#0b9e7a] ml-0.5 transition-colors">
+                <XIcon size={9} />
+              </button>
+            </span>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
 
 function safeParseArray(data) {
   if (!data) return [];
@@ -126,9 +279,22 @@ export default function ProductEdit({ product, onCancel, onSaveSuccess }) {
   // 🌟 FIX: Apply syncOptions to ToggleSelectFields as well so custom dropdown options don't vanish!
   const [navCategories, setNavCategories] = useState(() => { persistentNavCategories = syncOptions(persistentNavCategories, [product.navCategory]); return persistentNavCategories; });
   const [collections, setCollections] = useState(() => { persistentCollections = syncOptions(persistentCollections, [product.accordionCategory]); return persistentCollections; });
-  const [colorFamilies, setColorFamilies] = useState(() => { persistentColorFamilies = syncOptions(persistentColorFamilies, [product.colour]); return persistentColorFamilies; });
+
+  const initialSelectedColors = safeParseArray(product.colour);
+  const [colorFamilies, setColorFamilies] = useState(() => {
+    persistentColorFamilies = syncOptions(persistentColorFamilies, initialSelectedColors);
+    return persistentColorFamilies;
+  });
+  const [selectedColors, setSelectedColors] = useState(initialSelectedColors);
+
   const [shadeOptions, setShadeOptions] = useState(() => { persistentShadeOptions = syncOptions(persistentShadeOptions, [product.shade]); return persistentShadeOptions; });
-  const [thicknessOptions, setThicknessOptions] = useState(() => { persistentThicknessOptions = syncOptions(persistentThicknessOptions, [product.thickness]); return persistentThicknessOptions; });
+  const initialSelectedThickness = safeParseArray(product.thickness);
+  const [thicknessOptions, setThicknessOptions] = useState(() => {
+    persistentThicknessOptions = syncOptions(persistentThicknessOptions, initialSelectedThickness);
+    return persistentThicknessOptions;
+  });
+  const [selectedThicknessValues, setSelectedThicknessValues] = useState(initialSelectedThickness);
+
   const [styleOptions, setStyleOptions] = useState(() => { persistentStyleOptions = syncOptions(persistentStyleOptions, [product.style]); return persistentStyleOptions; });
   const [patternOptions, setPatternOptions] = useState(() => { persistentPatternOptions = syncOptions(persistentPatternOptions, [product.pattern]); return persistentPatternOptions; });
 
@@ -173,6 +339,16 @@ export default function ProductEdit({ product, onCancel, onSaveSuccess }) {
       prev.includes(area) ? prev.filter(a => a !== area) : [...prev, area]
     );
 
+  const toggleThickness = (val) =>
+    setSelectedThicknessValues(prev =>
+      prev.includes(val) ? prev.filter(t => t !== val) : [...prev, val]
+    );
+
+  const toggleColor = (val) =>
+    setSelectedColors(prev =>
+      prev.includes(val) ? prev.filter(c => c !== val) : [...prev, val]
+    );
+
   const handleAddCustomApplicationArea = () => {
     const val = newApplicationAreaInput.trim();
     if (!val) return;
@@ -193,6 +369,8 @@ async function handleSave() {
       Object.keys(form).forEach(key => {
         if (key === 'tags') {
           formData.set(key, JSON.stringify((form[key] || '').split(',').map(t => t.trim()).filter(Boolean)));
+        } else if (key === 'thickness' || key === 'colour') {
+          // skipped — handled explicitly below as multi-select arrays (style stays a plain single value)
         } else {
           formData.set(key, form[key]); // USE .set() INSTEAD OF .append()
         }
@@ -201,6 +379,8 @@ async function handleSave() {
       // 2. Explicitly SET the custom arrays so they don't duplicate
       formData.set('userIndustry', JSON.stringify(selectedIndustries));
       formData.set('applicationArea', JSON.stringify(selectedApplicationAreas));
+      formData.set('thickness', JSON.stringify(selectedThicknessValues));
+      formData.set('colour', JSON.stringify(selectedColors));
       
       if (selectedFile) formData.set('tileImage', selectedFile);
 
@@ -282,14 +462,16 @@ async function handleSave() {
           </div>
 
           <div className="grid grid-cols-2 gap-3">
-            <ToggleSelectField
+            <MultiSelectDropdown
               label="Colour Variant"
-              value={form.colour}
-              onChange={val => set('colour', val)}
               options={colorFamilies}
+              selected={selectedColors}
+              onToggle={toggleColor}
               onAddOption={val => setColorFamilies(p => { const u = [...p, val]; persistentColorFamilies = u; return u; })}
-              onRemoveOption={val => setColorFamilies(p => { const u = p.filter(i => i !== val); persistentColorFamilies = u; return u; })}
-              onEditOption={(oldVal, newVal) => setColorFamilies(p => { const u = p.map(i => i === oldVal ? newVal : i); persistentColorFamilies = u; return u; })}
+              onRemoveOption={val => { setColorFamilies(p => { const u = p.filter(i => i !== val); persistentColorFamilies = u; return u; }); setSelectedColors(p => p.filter(c => c !== val)); }}
+              placeholder="Select color(s)…"
+              addPlaceholder="e.g., Terra Cotta"
+              showSwatches={true}
             />
             <ToggleSelectField
               label="Shade Value"
@@ -303,14 +485,15 @@ async function handleSave() {
           </div>
 
           <div className="grid grid-cols-2 gap-3">
-            <ToggleSelectField
+            <MultiSelectDropdown
               label="Thickness"
-              value={form.thickness}
-              onChange={val => set('thickness', val)}
               options={thicknessOptions}
+              selected={selectedThicknessValues}
+              onToggle={toggleThickness}
               onAddOption={val => setThicknessOptions(p => { const u = [...p, val]; persistentThicknessOptions = u; return u; })}
-              onRemoveOption={val => setThicknessOptions(p => { const u = p.filter(i => i !== val); persistentThicknessOptions = u; return u; })}
-              onEditOption={(oldVal, newVal) => setThicknessOptions(p => { const u = p.map(i => i === oldVal ? newVal : i); persistentThicknessOptions = u; return u; })}
+              onRemoveOption={val => { setThicknessOptions(p => { const u = p.filter(i => i !== val); persistentThicknessOptions = u; return u; }); setSelectedThicknessValues(p => p.filter(t => t !== val)); }}
+              placeholder="Select thickness(es)…"
+              addPlaceholder="e.g., 4.5mm"
             />
             <ToggleSelectField
               label="Style"
