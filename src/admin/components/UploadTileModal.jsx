@@ -501,8 +501,10 @@ export default function UploadTileModal({ onClose, onSuccess }) {
 
   // ─────────────────────────────────────────────────────────────────────────────
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-sm p-4 animate-fade-in">
-      <div className="bg-white border border-slate-200 rounded-xl w-full max-w-3xl shadow-2xl flex flex-col max-h-[90vh]">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-sm p-4 animate-fade-in"
+       onClick={onClose}>
+      <div className="bg-white border border-slate-200 rounded-xl w-full max-w-3xl shadow-2xl flex flex-col max-h-[90vh]"
+          onClick={e => e.stopPropagation()}>
 
         {/* Header */}
         <div className="flex justify-between items-center px-6 py-4 border-b border-slate-100 shrink-0">
