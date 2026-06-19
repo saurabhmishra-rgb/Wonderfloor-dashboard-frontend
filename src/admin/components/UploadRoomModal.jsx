@@ -8,12 +8,13 @@ const INITIAL_ROOM_CATEGORIES = [
 ];
 
 const INITIAL_PRODUCT_COLLECTIONS = [
-  'Braavo', 'Krayons', 'Durofloor', 'Siggma', 'Orbit', 'Stoneland Monza', 
-  'Antique','Adventus', 'Duratek','Galaxxy','GDP','Hi- Tech','Krayons','Luxuria','Matrixx','Meteor',
-  'Ornate','Orbit','Oriion','Rangolie','Rhythm','Robust','Traction / Safety','Trendo Wood',
-  'Trendo Chips', 'Uttsav','WallsPro Plus',
-  'Meteor', 'Aventus', 'Timberworld 1.5mm', 'Timberland Exotica 2mm', 
-  'Timberland Maestro 3mm', 'Timberland Herringbone','Timberland Widex', 'Grandeure Supreme',
+   'Braavo', 'Krayons', 'Durofloor', 'Siggma', 'Orbit', 'Stoneland Monza', 
+  'Antique', 'Adventus', 'Duratek', 'Galaxxy', 'GDP', 'Hi-Tech', 'Luxuria', 
+  'Matrixx', 'Meteor', 'Ornate', 'Oriion', 'Rangolie', 'Rhythm', 'Robust', 
+  'Traction / Safety', 'Trendo Wood', 'Trendo Chips', 'Uttsav',  
+  'Aventus', 'Timberworld 1.5mm', 'Timberland Exotica 2mm', 
+  'Timberland Maestro 3mm', 'Timberland Herringbone', 'Timberland Widex', 
+  'Grandeure Supreme'
 
 ];
 
