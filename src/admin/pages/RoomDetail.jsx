@@ -4,34 +4,34 @@ const BASE_URL = import.meta.env.VITE_NODE_BACKEND_URL || 'https://wonderfloor-d
 
 // ─── Initial data constants ───────────────────────────────────────────────────
 const INITIAL_ROOM_CATEGORIES = [
-  'Industrial Flooring', 'Office Flooring', 'Residential Flooring', 
-  'School Flooring', 'Sports Flooring', 'Supermarket Flooring', 
-  'Transport Flooring', 'Hospital Flooring', 'Auditorium Flooring', 
+  'Industrial Flooring', 'Office Flooring', 'Residential Flooring',
+  'School Flooring', 'Sports Flooring', 'Supermarket Flooring',
+  'Transport Flooring', 'Hospital Flooring', 'Auditorium Flooring',
   'Hotel/ Hospitality Flooring'
 ];
 
 const INITIAL_PRODUCT_COLLECTIONS = [
-  'Braavo', 'Krayons', 'Durofloor', 'Siggma', 'Orbit', 'Stoneland Monza', 
-  'Meteor', 'Aventus', 'Timberworld 1.5mm', 'Timberland Exotica 2mm', 
+  'Braavo', 'Krayons', 'Durofloor', 'Siggma', 'Orbit', 'Stoneland Monza',
+  'Meteor', 'Aventus', 'Timberworld 1.5mm', 'Timberland Exotica 2mm',
   'Timberland Maestro 3mm', 'Timberland Herringbone'
 ];
 
 // ─── Persistent Memory (Lives outside the modal lifecycle) ────────────────────
-let persistentRoomCategories     = [...INITIAL_ROOM_CATEGORIES];
+let persistentRoomCategories = [...INITIAL_ROOM_CATEGORIES];
 let persistentProductCollections = [...INITIAL_PRODUCT_COLLECTIONS];
 
 export default function RoomDetail({ roomId, initialMode = 'view', onClose }) {
   const [room, setRoom] = useState(null);
   const [loading, setLoading] = useState(true);
-  
+
   // Edit mode states
   const [isEditing, setIsEditing] = useState(initialMode === 'edit');
   const [isSaving, setIsSaving] = useState(false);
-  
+
   // Track dynamic list updates
   const [categories, setCategories] = useState(persistentRoomCategories);
   const [collections, setCollections] = useState(persistentProductCollections);
-  
+
   // Dropdown open states
   const [isCategoryOpen, setIsCategoryOpen] = useState(false);
   const [isCollectionsOpen, setIsCollectionsOpen] = useState(false);
@@ -46,8 +46,8 @@ export default function RoomDetail({ roomId, initialMode = 'view', onClose }) {
     name: '',
     category: '',
     supportedCollections: [], // Upgraded to array track manipulation
-    newRoomImage: null, 
-    newMaskImage: null  
+    newRoomImage: null,
+    newMaskImage: null
   });
 
   useEffect(() => {
@@ -56,8 +56,8 @@ export default function RoomDetail({ roomId, initialMode = 'view', onClose }) {
 
   useEffect(() => {
     if (!roomId) return;
-    let isMounted = true; 
-    
+    let isMounted = true;
+
     async function fetchRoomDetails() {
       setLoading(true);
       try {
@@ -80,7 +80,7 @@ export default function RoomDetail({ roomId, initialMode = 'view', onClose }) {
         if (isMounted) setLoading(false);
       }
     }
-    
+
     fetchRoomDetails();
     return () => { isMounted = false; };
   }, [roomId]);
@@ -100,8 +100,8 @@ export default function RoomDetail({ roomId, initialMode = 'view', onClose }) {
   const toggleCollectionItem = (item) => {
     setFormData(prev => {
       const current = prev.supportedCollections;
-      const updated = current.includes(item) 
-        ? current.filter(c => c !== item) 
+      const updated = current.includes(item)
+        ? current.filter(c => c !== item)
         : [...current, item];
       return { ...prev, supportedCollections: updated };
     });
@@ -150,29 +150,29 @@ export default function RoomDetail({ roomId, initialMode = 'view', onClose }) {
       payload.append('supportedCollections', JSON.stringify(formData.supportedCollections));
 
       if (formData.newRoomImage) {
-        payload.append('previewImage', formData.newRoomImage); 
+        payload.append('previewImage', formData.newRoomImage);
       }
       if (formData.newMaskImage) {
-        payload.append('maskImage', formData.newMaskImage);    
+        payload.append('maskImage', formData.newMaskImage);
       }
 
       const response = await fetch(`${BASE_URL}/rooms/${roomId}`, {
-        method: 'PATCH', 
+        method: 'PATCH',
         body: payload
       });
 
       if (!response.ok) throw new Error('Failed to update room');
-      
+
       const updatedRoom = await response.json();
-      setRoom(updatedRoom); 
-      setIsEditing(false);  
-      setFormData(prev => ({ 
-        ...prev, 
+      setRoom(updatedRoom);
+      setIsEditing(false);
+      setFormData(prev => ({
+        ...prev,
         supportedCollections: updatedRoom.supportedCollections || [],
-        newRoomImage: null, 
-        newMaskImage: null 
+        newRoomImage: null,
+        newMaskImage: null
       }));
-      
+
     } catch (error) {
       console.error('Error saving room:', error);
       alert('Failed to save changes. Check console for details.');
@@ -188,8 +188,8 @@ export default function RoomDetail({ roomId, initialMode = 'view', onClose }) {
       <div className="absolute inset-0" onClick={onClose} />
 
       <div className="relative w-full max-w-4xl bg-white rounded-2xl shadow-2xl overflow-hidden flex flex-col md:flex-row max-h-[90vh] z-10 animate-fade-in">
-        
-        <button 
+
+        <button
           onClick={onClose}
           className="absolute top-4 right-4 z-20 p-2 text-gray-400 hover:text-gray-700 bg-white/90 hover:bg-white rounded-full shadow-sm border border-gray-100 transition-all cursor-pointer"
         >
@@ -201,14 +201,14 @@ export default function RoomDetail({ roomId, initialMode = 'view', onClose }) {
         {loading ? (
           <div className="w-full flex flex-col items-center justify-center py-40 text-sm text-[#aaaaaa]">
             <svg className="animate-spin mb-3 text-[#0b9e7a]" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-              <path d="M21 12a9 9 0 1 1-6.219-8.56"/>
+              <path d="M21 12a9 9 0 1 1-6.219-8.56" />
             </svg>
             Syncing workspace canvas layers...
           </div>
         ) : !room ? (
           <div className="w-full flex flex-col items-center justify-center py-28 px-6 text-center gap-3">
             <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#e0e0e0" strokeWidth="1.5">
-              <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
+              <circle cx="12" cy="12" r="10" /><line x1="12" y1="8" x2="12" y2="12" /><line x1="12" y1="16" x2="12.01" y2="16" />
             </svg>
             <p className="text-sm font-medium text-gray-500">Target document metadata could not be fetched.</p>
             <button onClick={onClose} className="px-4 py-2 bg-[#0b9e7a] text-white rounded-lg text-sm font-medium shadow-sm hover:bg-[#09866a] transition-colors cursor-pointer">
@@ -220,10 +220,10 @@ export default function RoomDetail({ roomId, initialMode = 'view', onClose }) {
             {/* LEFT SIDE: Image Display Canvas Panel */}
             <div className="w-full md:w-[50%] bg-[#fafafa] flex items-center justify-center p-6 border-b md:border-b-0 md:border-r border-gray-100 shrink-0">
               <div className="aspect-[4/3] w-full rounded-xl border border-gray-200/70 bg-white overflow-hidden shadow-xs relative group">
-                <img 
-                  src={formData.newRoomImage ? URL.createObjectURL(formData.newRoomImage) : room.previewUrl} 
-                  alt={room.name} 
-                  className="w-full h-full object-cover transition-all duration-700 group-hover:scale-102" 
+                <img
+                  src={formData.newRoomImage ? URL.createObjectURL(formData.newRoomImage) : room.previewUrl}
+                  alt={room.name}
+                  className="w-full h-full object-cover transition-all duration-700 group-hover:scale-102"
                   onError={e => { e.target.src = 'https://placehold.co/600x450?text=Asset+Missing'; }}
                 />
                 {formData.newRoomImage && (
@@ -239,20 +239,20 @@ export default function RoomDetail({ roomId, initialMode = 'view', onClose }) {
 
             {/* RIGHT SIDE: Detailed Config Specification Info Block */}
             <div className="flex-1 p-8 flex flex-col justify-between bg-white min-w-0 overflow-y-auto">
-              
+
               {isEditing ? (
                 /* EDIT MODE FORM */
                 <div className="space-y-4">
                   <h2 className="text-xl font-bold tracking-tight text-gray-900 mb-2">Edit Room Details</h2>
-                  
+
                   <div className="grid grid-cols-2 gap-4">
                     {/* Room Name Input */}
                     <div>
                       <label className="text-[10px] font-bold uppercase tracking-wider text-gray-500">Room Name</label>
-                      <input 
-                        type="text" 
-                        value={formData.name} 
-                        onChange={(e) => setFormData({...formData, name: e.target.value})}
+                      <input
+                        type="text"
+                        value={formData.name}
+                        onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                         className="w-full mt-1.5 px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm text-gray-800 focus:outline-none focus:border-[#0b9e7a] focus:ring-1 focus:ring-[#0b9e7a] transition-all"
                         placeholder="e.g. Modern Living Room"
                       />
@@ -380,12 +380,19 @@ export default function RoomDetail({ roomId, initialMode = 'view', onClose }) {
                             {formData.supportedCollections.length === 0 ? (
                               <span className="text-gray-400 text-sm pl-1.5">Select supported ecosystems...</span>
                             ) : (
-                              formData.supportedCollections.map(col => (
-                                <span key={col} className="inline-flex items-center gap-1 px-2 py-0.5 bg-[#edf9f5] border border-[#0b9e7a]/20 text-[#0b9e7a] text-xs font-semibold rounded-md">
+                              formData.supportedCollections.map((col, index) => (
+                                <span
+                                  key={col}
+                                  className="inline-flex items-center gap-1 px-2 py-0.5 bg-[#edf9f5] border border-[#0b9e7a]/20 text-[#0b9e7a] text-xs font-semibold rounded-md"
+                                >
+                                  {/* Order number pill */}
+                                  <span className="w-3.5 h-3.5 rounded-full bg-[#0b9e7a] text-white text-[8px] font-bold flex items-center justify-center shrink-0">
+                                    {index + 1}
+                                  </span>
                                   {col}
-                                  <span 
+                                  <span
                                     onClick={(e) => { e.stopPropagation(); toggleCollectionItem(col); }}
-                                    className="hover:bg-[#0b9e7a]/10 rounded-sm p-0.5 text-[#0b9e7a]/60 hover:text-[#0b9e7a]"
+                                    className="hover:bg-[#0b9e7a]/10 rounded-sm p-0.5 text-[#0b9e7a]/60 hover:text-[#0b9e7a] cursor-pointer"
                                   >
                                     ×
                                   </span>
@@ -403,39 +410,50 @@ export default function RoomDetail({ roomId, initialMode = 'view', onClose }) {
                             <div className="fixed inset-0 z-20" onClick={() => setIsCollectionsOpen(false)}></div>
                             <ul className="absolute z-30 w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg max-h-48 overflow-y-auto py-1">
                               {collections.map(col => {
-                                const isChecked = formData.supportedCollections.includes(col);
+                                const orderIndex = formData.supportedCollections.indexOf(col);
+                                const isChecked = orderIndex !== -1;
                                 return (
                                   <li
                                     key={col}
                                     onClick={() => toggleCollectionItem(col)}
                                     className="group px-3 py-1.5 text-sm text-gray-800 hover:bg-gray-50 flex justify-between items-center cursor-pointer select-none"
                                   >
-                                    <span className={`truncate ${isChecked ? 'text-[#0b9e7a] font-semibold' : ''}`}>{col}</span>
-                                    <div className="flex items-center gap-2">
-                                      {isChecked && (
-                                        <span className="text-[#0b9e7a] text-xs font-bold">✓</span>
-                                      )}
-                                      <button
-                                        type="button"
-                                        onClick={(e) => {
-                                          e.stopPropagation();
-                                          setCollections(prev => {
-                                            const updated = prev.filter(c => c !== col);
-                                            persistentProductCollections = updated;
-                                            return updated;
-                                          });
-                                          setFormData(prev => ({
-                                            ...prev,
-                                            supportedCollections: prev.supportedCollections.filter(c => c !== col)
-                                          }));
-                                        }}
-                                        className="text-gray-400 hover:text-red-500 p-0.5 rounded opacity-0 group-hover:opacity-100 transition-all"
-                                      >
-                                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                          <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
-                                        </svg>
-                                      </button>
+                                    <div className="flex items-center gap-2 flex-1 min-w-0">
+                                      {/* Order badge — shows position number when selected, empty box when not */}
+                                      <div className={`w-5 h-5 rounded flex items-center justify-center border-2 shrink-0 transition-all
+                ${isChecked
+                                          ? 'bg-[#0b9e7a] border-[#0b9e7a]'
+                                          : 'bg-gray-50 border-gray-300 group-hover:border-gray-400'}`}>
+                                        {isChecked && (
+                                          <span className="text-white text-[9px] font-bold leading-none">
+                                            {orderIndex + 1}
+                                          </span>
+                                        )}
+                                      </div>
+                                      <span className={`truncate ${isChecked ? 'text-[#0b9e7a] font-semibold' : ''}`}>
+                                        {col}
+                                      </span>
                                     </div>
+                                    <button
+                                      type="button"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        setCollections(prev => {
+                                          const updated = prev.filter(c => c !== col);
+                                          persistentProductCollections = updated;
+                                          return updated;
+                                        });
+                                        setFormData(prev => ({
+                                          ...prev,
+                                          supportedCollections: prev.supportedCollections.filter(c => c !== col)
+                                        }));
+                                      }}
+                                      className="text-gray-400 hover:text-red-500 p-0.5 rounded opacity-0 group-hover:opacity-100 transition-all ml-2 shrink-0"
+                                    >
+                                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                        <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
+                                      </svg>
+                                    </button>
                                   </li>
                                 );
                               })}
@@ -496,7 +514,7 @@ export default function RoomDetail({ roomId, initialMode = 'view', onClose }) {
                   <div>
                     <div className="flex items-start justify-between gap-4">
                       <h2 className="text-xl font-bold tracking-tight text-gray-900 truncate">{room.name}</h2>
-                      <button 
+                      <button
                         onClick={() => setIsEditing(true)}
                         className="p-1.5 text-gray-400 hover:text-[#0b9e7a] hover:bg-[#edf9f5] rounded-md transition-colors"
                         title="Edit Details"
@@ -519,7 +537,13 @@ export default function RoomDetail({ roomId, initialMode = 'view', onClose }) {
                     <div className="flex flex-wrap gap-1.5">
                       {room.supportedCollections?.length > 0 ? (
                         room.supportedCollections.map((col, i) => (
-                          <span key={i} className="px-2.5 py-1 bg-gray-50 border border-gray-200 text-gray-600 text-[11px] font-medium rounded-md whitespace-nowrap">
+                          <span
+                            key={i}
+                            className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-gray-50 border border-gray-200 text-gray-600 text-[11px] font-medium rounded-md whitespace-nowrap"
+                          >
+                            <span className="w-3.5 h-3.5 rounded-full bg-[#0b9e7a] text-white text-[8px] font-bold flex items-center justify-center shrink-0">
+                              {i + 1}
+                            </span>
                             {col}
                           </span>
                         ))
@@ -535,7 +559,7 @@ export default function RoomDetail({ roomId, initialMode = 'view', onClose }) {
               <div className="pt-5 border-t border-gray-100 mt-6 flex gap-3">
                 {isEditing ? (
                   <>
-                    <button 
+                    <button
                       onClick={() => {
                         setIsEditing(false);
                         setIsCategoryOpen(false);
@@ -549,21 +573,21 @@ export default function RoomDetail({ roomId, initialMode = 'view', onClose }) {
                           newRoomImage: null,
                           newMaskImage: null
                         });
-                      }} 
+                      }}
                       disabled={isSaving}
                       className="flex-1 py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-600 text-xs font-semibold rounded-xl transition-all"
                     >
                       Cancel
                     </button>
-                    <button 
-                      onClick={handleSave} 
+                    <button
+                      onClick={handleSave}
                       disabled={isSaving}
                       className="flex-1 flex items-center justify-center gap-2 py-2.5 bg-[#0b9e7a] hover:bg-[#09866a] disabled:bg-opacity-70 text-white text-xs font-semibold rounded-xl transition-all shadow-sm"
                     >
                       {isSaving ? (
                         <>
                           <svg className="animate-spin w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                            <path d="M21 12a9 9 0 1 1-6.219-8.56"/>
+                            <path d="M21 12a9 9 0 1 1-6.219-8.56" />
                           </svg>
                           Saving...
                         </>
@@ -572,28 +596,28 @@ export default function RoomDetail({ roomId, initialMode = 'view', onClose }) {
                   </>
                 ) : (
                   <>
-                    <a 
-                      href={room.previewUrl} 
-                      target="_blank" 
-                      rel="noreferrer" 
+                    <a
+                      href={room.previewUrl}
+                      target="_blank"
+                      rel="noreferrer"
                       className="flex-1 inline-flex items-center justify-center gap-1.5 py-2.5 bg-gray-50 hover:bg-gray-100 border border-gray-200 text-gray-600 text-xs font-semibold rounded-xl transition-all shadow-xs text-center"
                     >
                       <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                        <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/>
+                        <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-8a2 2 0 0 1 2-2h6" /><polyline points="15 3 21 3 21 9" /><line x1="10" y1="14" x2="21" y2="3" />
                       </svg>
                       Inspect Base
                     </a>
-                    
+
                     {room.maskUrl && (
-                      <a 
-                        href={room.maskUrl} 
-                        target="_blank" 
-                        rel="noreferrer" 
+                      <a
+                        href={room.maskUrl}
+                        target="_blank"
+                        rel="noreferrer"
                         className="flex-1 inline-flex items-center justify-center gap-1.5 py-2.5 bg-[#0b9e7a] hover:bg-[#09866a] text-white text-xs font-semibold rounded-xl transition-all shadow-sm"
                       >
                         <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                          <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/>
-                          <polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/>
+                          <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z" />
+                          <polyline points="3.27 6.96 12 12.01 20.73 6.96" /><line x1="12" y1="22.08" x2="12" y2="12" />
                         </svg>
                         Inspect Mask
                       </a>
