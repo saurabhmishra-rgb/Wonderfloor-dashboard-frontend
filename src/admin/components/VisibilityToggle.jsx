@@ -1,7 +1,5 @@
-// components/VisibilityToggle.jsx
 import { useState } from 'react';
 
-// At the top of VisibilityToggle.jsx — match whichever env you're testing in
 const NODE_BACKEND_URL = import.meta.env.VITE_NODE_BACKEND_URL || 'https://wonderfloor-dashboard.vercel.app';
 
 export default function VisibilityToggle({ productId, initialVisible, onToggle }) {
@@ -10,15 +8,29 @@ export default function VisibilityToggle({ productId, initialVisible, onToggle }
 
   const handleToggle = async (e) => {
     e.stopPropagation(); // prevent card click
+    if (loading) return;
+    
+    const nextVisibility = !isVisible;
     setLoading(true);
+
     try {
-      const res = await fetch(`${NODE_BACKEND_URL}/products/${productId}/visibility`, {
+      // 1. URL FIXED: Removed "/visibility" from the end
+      // 2. PAYLOAD ADDED: Sending headers and JSON body
+      const res = await fetch(`${NODE_BACKEND_URL}/products/${productId}`, {
         method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ isVisible: nextVisibility }),
       });
-      const data = await res.json();
+
+      // 3. PARSING FIXED: Only update state if the response was successful 
+      // (prevents the HTML/JSON parsing crash)
       if (res.ok) {
-        setIsVisible(data.isVisible);
-        onToggle?.(productId, data.isVisible);
+        setIsVisible(nextVisibility);
+        onToggle?.(productId, nextVisibility);
+      } else {
+        throw new Error(`Server responded with status: ${res.status}`);
       }
     } catch (err) {
       console.error('Toggle failed:', err);
