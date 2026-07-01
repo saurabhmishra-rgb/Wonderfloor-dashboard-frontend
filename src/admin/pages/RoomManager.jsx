@@ -96,7 +96,7 @@ export default function RoomManager() {
     const catRooms = rooms.filter(r => r.category === oldFullCat);
     await Promise.all(
       catRooms.map(r =>
-        fetch(`https://wonderfloor-dashboard.vercel.app/${r._id}`, {
+        fetch(`https://wonderfloor-dashboard.vercel.app/rooms/${r._id}`, {
           method: 'PATCH',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ category: trimmed }),
@@ -113,7 +113,7 @@ export default function RoomManager() {
     e.stopPropagation();
     setTogglingId(roomId);
     try {
-      const res = await fetch(`https://wonderfloor-dashboard.vercel.app/${roomId}/toggle-live`, {
+      const res = await fetch(`https://wonderfloor-dashboard.vercel.app/rooms/${roomId}/toggle-live`, {
         method: 'PATCH',
       });
       if (!res.ok) throw new Error('Toggle failed');
