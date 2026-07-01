@@ -7,13 +7,14 @@ import ProductDetailModal from './ProductDetailModal';
 import VisibilityToggle from '../components/VisibilityToggle';
 import DeleteProductModal from '../components/DeleteProductModal';
 import { useSearch } from '../components/SearchContext'; // <-- Import the search context hook
+import { useDragToSwap } from '../../hooks/useDragToSwap'; // Paste whatever it gives you!
 /* ─── icons ──────────────────────────────────────────────────────── */
 const Icon = {
   grid: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><rect x="3" y="3" width="7" height="7" /><rect x="14" y="3" width="7" height="7" /><rect x="14" y="14" width="7" height="7" /><rect x="3" y="14" width="7" height="7" /></svg>,
   photo: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><rect x="3" y="3" width="18" height="18" rx="2" /><circle cx="8.5" cy="8.5" r="1.5" /><polyline points="21 15 16 10 5 21" /></svg>,
   stack: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><polygon points="12 2 2 7 12 12 22 7 12 2" /><polyline points="2 17 12 22 22 17" /><polyline points="2 12 12 17 22 12" /></svg>,
   users: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /><path d="M23 21v-2a4 4 0 0 0-3-3.87" /><path d="M16 3.13a4 4 0 0 1 0 7.75" /></svg>,
-  settings: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><circle cx="12" cy="12" r="3" /><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" /></svg>,
+  settings: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><circle cx="12" cy="12" r="3" /><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" /></svg>,
   plus: <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" /></svg>,
   menu: <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="3" y1="12" x2="21" y2="12" /><line x1="3" y1="6" x2="21" y2="6" /><line x1="3" y1="18" x2="21" y2="18" /></svg>,
   close: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>,
@@ -22,14 +23,13 @@ const Icon = {
   edit: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" /><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" /></svg>,
   trash: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="3 6 5 6 21 6" /><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" /><line x1="10" y1="11" x2="10" y2="17" /><line x1="14" y1="11" x2="14" y2="17" /></svg>,
   bulk: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /><polyline points="14 2 14 8 20 8" /><line x1="16" y1="13" x2="8" y2="13" /><line x1="16" y1="17" x2="8" y2="17" /><polyline points="10 9 9 9 8 9" /></svg>,
-   logout: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>,
+  logout: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" /><polyline points="16 17 21 12 16 7" /><line x1="21" y1="12" x2="9" y2="12" /></svg>,
 };
 
 const navItems = [
   { label: 'Dashboard Overview', icon: 'grid', key: 'overview', path: '/admin', group: null },
   { label: 'Demo Rooms', icon: 'photo', key: 'rooms', path: '/admin/rooms', group: 'MANAGE' },
   { label: 'Flooring Products', icon: 'stack', key: 'products', path: '/admin/products', group: null },
-  // { label: 'Admin users', icon: 'users', key: 'users', path: '/admin/sidebar', group: 'SETTINGS' },
   { label: 'Settings', icon: 'settings', key: 'settings', path: '/admin/settings', group: null },
 ];
 
@@ -48,22 +48,28 @@ export default function ProductManager() {
   const [isTileModalOpen, setIsTileModalOpen] = useState(false);
   const [isBulkModalOpen, setIsBulkModalOpen] = useState(false);
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
-  const [viewMode, setViewMode] = useState('list');
+  const [viewMode, setViewMode] = useState('grid');
 
   const [editingCollection, setEditingCollection] = useState(null);
   const [editingValue, setEditingValue] = useState('');
 
-  // detail modal state — id + which mode to open in
   const [detailProductId, setDetailProductId] = useState(null);
   const [detailMode, setDetailMode] = useState('view');   // 'view' | 'edit'
   const [productToDelete, setProductToDelete] = useState(null);
+
+  // Hook handling drag and drop
+  const {
+    getOrderedProducts,
+    productDragHandlers,
+    getProductDragClass,
+  } = useDragToSwap();
 
   const navigate = useNavigate();
   const location = useLocation();
   const activePage = navItems.find(item => item.path === location.pathname)?.key || 'products';
   const types = [
     { label: 'All Products', value: 'All' },
-    { label: 'View by Collection - General', value: 'Flooring Products' },
+    { label: 'View by Collection- General', value: 'Flooring Products' },
     { label: 'View by Collection - LVT', value: 'Luxury Vinyl Tile' }
   ];
 
@@ -87,7 +93,6 @@ export default function ProductManager() {
         })
       )
     );
-    // Optimistic local update — no full refetch needed
     setProducts(prev =>
       prev.map(p =>
         p.accordionCategory === oldName ? { ...p, accordionCategory: trimmed } : p
@@ -126,41 +131,49 @@ export default function ProductManager() {
     .filter(p => p.accordionCategory === col)
     .every(p => p.isVisible !== false);
 
+ const filteredProducts = products.filter(p => {
+  const matchType = activeType === 'All' || p.navCategory === activeType;
+  const matchCollection = searchQuery ? true : (!selectedCollection || p.accordionCategory === selectedCollection);
 
-  /* ── derived data ── */
-  const filteredProducts = products.filter(p => {
-    // 1. Category tab filtering
-    const matchType = activeType === 'All' || p.navCategory === activeType;
+  // 🔴 FIX: Fallback to an empty string if searchQuery is undefined or null
+  const q = (searchQuery || '').toLowerCase(); 
 
-    // 2. Dropdown collection filtering
-    const matchCollection = searchQuery ? true : (!selectedCollection || p.accordionCategory === selectedCollection);
+  const matchSearch =
+    (p.name?.toLowerCase().includes(q)) ||
+    (p.sku?.toLowerCase().includes(q)) ||
+    (p.navCategory?.toLowerCase().includes(q)) ||
+    (p.accordionCategory?.toLowerCase().includes(q)) ||
+    (p.size?.toLowerCase().includes(q)) ||
+    (p.colour?.toLowerCase().includes(q)) ||
+    (p.shade?.toLowerCase().includes(q)) ||
+    (Array.isArray(p.userIndustry) && p.userIndustry.some(industry => industry?.toLowerCase().includes(q))) ||
+    (Array.isArray(p.tags) && p.tags.some(tag => tag?.toLowerCase().includes(q))) ||
+    (typeof p.tags === 'string' && p.tags.toLowerCase().includes(q));
 
-    // 3. Comprehensive Global search query filtering
-    const q = searchQuery.toLowerCase();
-    const matchSearch =
-      (p.name?.toLowerCase().includes(q)) ||
-      (p.sku?.toLowerCase().includes(q)) ||
-      (p.navCategory?.toLowerCase().includes(q)) ||
-      (p.accordionCategory?.toLowerCase().includes(q)) ||
-      (p.size?.toLowerCase().includes(q)) ||
-      (p.colour?.toLowerCase().includes(q)) ||
-      (p.shade?.toLowerCase().includes(q)) ||
-      (Array.isArray(p.userIndustry) && p.userIndustry.some(industry => industry?.toLowerCase().includes(q))) ||
-      // NEW: Check if the search query matches any custom searchable tags
-      (Array.isArray(p.tags) && p.tags.some(tag => tag?.toLowerCase().includes(q))) ||
-      (typeof p.tags === 'string' && p.tags.toLowerCase().includes(q));
+  return matchType && matchCollection && matchSearch;
+});
 
-    return matchType && matchCollection && matchSearch;
-  });
-
-  const handleVisibilityChange = (id, newVisible) =>
+ const handleVisibilityChange = (id, newVisible) =>
     setProducts(prev => prev.map(p => p._id === id ? { ...p, isVisible: newVisible } : p));
+
+  // ─── SWAP OUT THE ORDERING PIPELINE WITH THE SAFEGUARD ───
+  let orderedProducts = [];
+  try {
+    orderedProducts = getOrderedProducts(filteredProducts);
+    // Double check that the hook actually returned a valid array
+    if (!Array.isArray(orderedProducts)) {
+      orderedProducts = filteredProducts;
+    }
+  } catch (err) {
+    console.error("useDragToSwap failed to sort products:", err);
+    orderedProducts = filteredProducts; // Fallback so the dashboard doesn't go white
+  }
 
   const isStageTwo = activeType === 'All' || selectedCollection;
 
   /* ─────────────────────────────────────────────────────────────────
-     RENDER
-  ───────────────────────────────────────────────────────────────── */
+      RENDER
+   ───────────────────────────────────────────────────────────────── */
   return (
     <div className="flex h-screen w-full font-sans bg-[#f4f4f5] text-[#111111] overflow-hidden">
 
@@ -181,12 +194,13 @@ export default function ProductManager() {
       `}>
         <div className="px-5 pt-5 pb-[18px] border-b border-[#e8e8e8] flex justify-between items-center">
           <div>
-            <div className="text-[17px] font-semibold text-[#111111] tracking-tight"> <img
-              src="https://www.wonderfloor.co.in/assets/img/logo/logo.png"
-              alt="Logo"
-              className="h-8 max-w-[150px] md:max-w-[180px] object-contain"
-            /></div>
-            {/* <div className="text-xs text-[#aaaaaa] mt-0.5">Admin panel</div> */}
+            <div className="text-[17px] font-semibold text-[#111111] tracking-tight"> 
+              <img
+                src="https://www.wonderfloor.co.in/assets/img/logo/logo.png"
+                alt="Logo"
+                className="h-8 max-w-[150px] md:max-w-[180px] object-contain"
+              />
+            </div>
           </div>
           <button
             onClick={() => setIsMobileSidebarOpen(false)}
@@ -203,8 +217,7 @@ export default function ProductManager() {
             return (
               <div key={item.key}>
                 {showGroup && (
-                  <div className="text-[10px] font-semibold tracking-[0.08em] text-[#bbbbbb]
-                                  px-5 pt-3.5 pb-1.5 uppercase">
+                  <div className="text-[10px] font-semibold tracking-[0.08em] text-[#bbbbbb] px-5 pt-3.5 pb-1.5 uppercase">
                     {item.group}
                   </div>
                 )}
@@ -228,13 +241,11 @@ export default function ProductManager() {
           })}
         </nav>
 
-       <div className="px-5 pt-3.5 pb-[18px] border-t border-[#e8e8e8] flex justify-between items-center">
+        <div className="px-5 pt-3.5 pb-[18px] border-t border-[#e8e8e8] flex justify-between items-center">
           <div>
             <div className="text-[11px] text-[#aaaaaa]">Logged in as</div>
             <div className="text-[13px] font-medium text-[#333333] mt-0.5">Admin</div>
           </div>
-
-          {/* 👇 YOUR LOGOUT BUTTON 👇 */}
           <button
             onClick={() => navigate('/admin/logout')}
             className="text-[#888888] hover:text-red-500 transition-colors p-2 rounded-md hover:bg-red-50 cursor-pointer"
@@ -249,13 +260,11 @@ export default function ProductManager() {
       <main className="flex-1 flex flex-col overflow-hidden min-w-0">
 
         {/* ── header ── */}
-        <header className="h-[58px] border-b border-[#e8e8e8] flex items-center justify-between
-                           px-4 md:px-7 shrink-0 bg-white gap-3">
+        <header className="h-[58px] border-b border-[#e8e8e8] flex items-center justify-between px-4 md:px-7 shrink-0 bg-white gap-3">
           <div className="flex items-center gap-3">
             <button
               onClick={() => setIsMobileSidebarOpen(true)}
-              className="md:hidden p-1.5 text-[#aaaaaa] hover:text-[#333] rounded-md
-                         hover:bg-[#f5f5f5] transition-colors"
+              className="md:hidden p-1.5 text-[#aaaaaa] hover:text-[#333] rounded-md hover:bg-[#f5f5f5] transition-colors"
             >
               {Icon.menu}
             </button>
@@ -265,10 +274,8 @@ export default function ProductManager() {
           </div>
 
           <div className="flex items-center gap-2 md:gap-3 flex-1 sm:flex-none justify-end">
-            {/* search */}
             <div className="relative w-full max-w-[200px] sm:max-w-none">
-              <svg className="absolute left-3 top-1/2 -translate-y-1/2 text-[#aaaaaa]"
-                width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <svg className="absolute left-3 top-1/2 -translate-y-1/2 text-[#aaaaaa]" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                 <circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" />
               </svg>
               <input
@@ -276,30 +283,21 @@ export default function ProductManager() {
                 placeholder="Search name/SKU…"
                 value={searchQuery}
                 onChange={e => setSearchQuery(e.target.value)}
-                className="bg-white border border-[#e0e0e0] text-[#111111] placeholder-[#aaaaaa]
-                           pl-8 pr-3 py-[7px] rounded-lg focus:outline-none focus:border-[#0b9e7a]
-                           w-full sm:w-48 lg:w-56 text-[13px] transition-colors"
+                className="bg-white border border-[#e0e0e0] text-[#111111] placeholder-[#aaaaaa] pl-8 pr-3 py-[7px] rounded-lg focus:outline-none focus:border-[#0b9e7a] w-full sm:w-48 lg:w-56 text-[13px] transition-colors"
               />
             </div>
 
-            {/* bulk upload */}
             <button
               onClick={() => setIsBulkModalOpen(true)}
-              className="flex items-center gap-1.5 px-3 py-[7px] bg-white border border-[#e0e0e0]
-                         hover:border-[#aaaaaa] rounded-lg text-[#555555] text-[13px] font-medium
-                         transition-all duration-150 cursor-pointer whitespace-nowrap shadow-sm shrink-0"
+              className="flex items-center gap-1.5 px-3 py-[7px] bg-white border border-[#e0e0e0] hover:border-[#aaaaaa] rounded-lg text-[#555555] text-[13px] font-medium transition-all duration-150 cursor-pointer whitespace-nowrap shadow-sm shrink-0"
             >
               {Icon.bulk}
               <span className="hidden sm:inline">Bulk Upload</span>
             </button>
 
-            {/* add product */}
             <button
               onClick={() => setIsTileModalOpen(true)}
-              className="flex items-center gap-1.5 px-3 sm:px-4 py-[7px] bg-[#0b9e7a]
-                         border border-[#0b9e7a] rounded-lg text-white text-[13px] font-medium
-                         transition-all duration-150 cursor-pointer hover:bg-[#09866a]
-                         whitespace-nowrap shadow-sm shrink-0"
+              className="flex items-center gap-1.5 px-3 sm:px-4 py-[7px] bg-[#0b9e7a] border border-[#0b9e7a] rounded-lg text-white text-[13px] font-medium transition-all duration-150 cursor-pointer hover:bg-[#09866a] whitespace-nowrap shadow-sm shrink-0"
             >
               {Icon.plus}
               <span className="hidden sm:inline">Add Flooring Product</span>
@@ -316,11 +314,7 @@ export default function ProductManager() {
               <button
                 key={typeObj.value}
                 onClick={() => { setActiveType(typeObj.value); setSelectedCollection(null); }}
-                className={`px-3 md:px-4 py-1.5 rounded-full text-xs md:text-sm font-medium
-                 transition-all duration-150 cursor-pointer
-                 ${activeType === typeObj.value
-                    ? 'bg-[#0b9e7a] text-white border border-[#0b9e7a] shadow-sm'
-                    : 'bg-white border border-[#e0e0e0] text-[#666666] hover:border-[#aaaaaa] hover:text-[#111111]'}`}
+                className={`px-3 md:px-4 py-1.5 rounded-full text-xs md:text-sm font-medium transition-all duration-150 cursor-pointer ${activeType === typeObj.value ? 'bg-[#0b9e7a] text-white border border-[#0b9e7a] shadow-sm' : 'bg-white border border-[#e0e0e0] text-[#666666] hover:border-[#aaaaaa] hover:text-[#111111]'}`}
               >
                 {typeObj.label}
               </button>
@@ -351,16 +345,14 @@ export default function ProductManager() {
                 <div className="flex items-center bg-[#eaeaea] p-0.5 rounded-lg border border-[#e0e0e0]">
                   <button
                     onClick={() => setViewMode('list')}
-                    className={`p-1.5 rounded-md transition-all duration-200
-                                ${viewMode === 'list' ? 'bg-white text-[#111111] shadow-sm' : 'text-[#888888] hover:text-[#444]'}`}
+                    className={`p-1.5 rounded-md transition-all duration-200 ${viewMode === 'list' ? 'bg-white text-[#111111] shadow-sm' : 'text-[#888888] hover:text-[#444]'}`}
                     title="List View"
                   >
                     {Icon.listView}
                   </button>
                   <button
                     onClick={() => setViewMode('grid')}
-                    className={`p-1.5 rounded-md transition-all duration-200
-                                ${viewMode === 'grid' ? 'bg-white text-[#111111] shadow-sm' : 'text-[#888888] hover:text-[#444]'}`}
+                    className={`p-1.5 rounded-md transition-all duration-200 ${viewMode === 'grid' ? 'bg-white text-[#111111] shadow-sm' : 'text-[#888888] hover:text-[#444]'}`}
                     title="Grid View"
                   >
                     {Icon.gridView}
@@ -370,9 +362,7 @@ export default function ProductManager() {
               {selectedCollection && (
                 <button
                   onClick={() => setSelectedCollection(null)}
-                  className="flex items-center gap-1 px-3 py-1.5 bg-white border border-[#e0e0e0]
-                             hover:border-[#aaaaaa] rounded-lg text-xs font-medium text-[#555555]
-                             transition-all cursor-pointer shadow-sm"
+                  className="flex items-center gap-1 px-3 py-1.5 bg-white border border-[#e0e0e0] hover:border-[#aaaaaa] rounded-lg text-xs font-medium text-[#555555] transition-all cursor-pointer shadow-sm"
                 >
                   <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
                     <line x1="19" y1="12" x2="5" y2="12" /><polyline points="12 19 5 12 12 5" />
@@ -391,9 +381,8 @@ export default function ProductManager() {
               </svg>
               Syncing database asset structures…
             </div>
-
-            /* collection grid (type selected, no collection drilled in, and NO active search) */
           ) : activeType !== 'All' && !selectedCollection && !searchQuery ? (
+            /* collection grid — Drag handlers and classes fully stripped from here */
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 md:gap-5">
               {uniqueCollections.map(col => {
                 const colVisible = isCollectionVisible(col);
@@ -402,7 +391,7 @@ export default function ProductManager() {
                   <div
                     key={col}
                     onClick={() => setSelectedCollection(col)}
-                    className="bg-white border border-[#e8e8e8] rounded-xl overflow-hidden flex flex-col group shadow-sm hover:shadow-md transition-all duration-200 cursor-pointer hover:-translate-y-0.5"
+                    className="bg-white rounded-xl overflow-hidden flex flex-col group shadow-sm transition-all duration-200 cursor-pointer"
                   >
                     <div className="h-32 w-full overflow-hidden bg-[#fafafa] border-b border-[#f0f0f0] relative">
                       <img
@@ -429,8 +418,6 @@ export default function ProductManager() {
                       </div>
                     </div>
                     <div className="p-4 flex items-center justify-between bg-white">
-
-                      {/* ── Inline editable name ── */}
                       {editingCollection === col ? (
                         <input
                           autoFocus
@@ -441,18 +428,15 @@ export default function ProductManager() {
                             if (e.key === 'Enter') handleRenameCollection(col, editingValue);
                             if (e.key === 'Escape') setEditingCollection(null);
                           }}
-                          onClick={e => e.stopPropagation()}  // don't drill into collection
-                          className="text-[14px] font-bold text-gray-800 tracking-tight border-b-2
-                 border-[#0b9e7a] focus:outline-none bg-transparent w-full pr-2"
+                          onClick={e => e.stopPropagation()}
+                          className="text-[14px] font-bold text-gray-800 tracking-tight border-b-2 border-[#0b9e7a] focus:outline-none bg-transparent w-full pr-2"
                         />
                       ) : (
-                        <h3 className="text-[14px] font-bold text-gray-800 tracking-tight
-                   group-hover:text-[#0b9e7a] transition-colors truncate pr-2">
+                        <h3 className="text-[14px] font-bold text-gray-800 tracking-tight group-hover:text-[#0b9e7a] transition-colors truncate pr-2">
                           {col}
                         </h3>
                       )}
 
-                      {/* ── Count badge + edit pencil ── */}
                       <div className="flex items-center gap-1.5 shrink-0">
                         <button
                           onClick={e => {
@@ -465,27 +449,21 @@ export default function ProductManager() {
                         >
                           {Icon.edit}
                         </button>
-                        <span className="text-[11px] font-semibold px-2.5 py-0.5 bg-gray-100 text-gray-500
-                     rounded-full group-hover:bg-[#edf9f5] group-hover:text-[#0b9e7a] transition-colors">
+                        <span className="text-[11px] font-semibold px-2.5 py-0.5 bg-gray-100 text-gray-500 rounded-full group-hover:bg-[#edf9f5] group-hover:text-[#0b9e7a] transition-colors">
                           {getCollectionItemCount(col)}
                         </span>
                       </div>
-
                     </div>
                   </div>
                 );
               })}
             </div>
-
-            /* product list / grid */
           ) : (
             <>
               {filteredProducts.length === 0 ? (
-                <div className="text-center py-16 text-[#aaaaaa] text-sm border-2 border-dashed
-                                border-[#e0e0e0] rounded-xl bg-white">
+                <div className="text-center py-16 text-[#aaaaaa] text-sm border-2 border-dashed border-[#e0e0e0] rounded-xl bg-white">
                   No products found in this selection.
                 </div>
-
               ) : viewMode === 'list' ? (
                 /* ── LIST VIEW ── */
                 <div className="bg-white border border-[#e8e8e8] rounded-xl overflow-hidden shadow-sm">
@@ -494,180 +472,157 @@ export default function ProductManager() {
                       <thead>
                         <tr className="bg-[#fafafa] border-b border-[#f0f0f0]">
                           {['Product Details', 'SKU', 'Collection', 'Dimensions', 'Visibility', 'Actions'].map((h, i) => (
-                            <th key={h}
-                              className={`px-5 py-3.5 text-xs font-semibold text-[#aaaaaa]
-                                            uppercase tracking-wider whitespace-nowrap
-                                            ${i === 5 ? 'text-right' : ''}`}>
+                            <th key={h} className={`px-5 py-3.5 text-xs font-semibold text-[#aaaaaa] uppercase tracking-wider whitespace-nowrap ${i === 5 ? 'text-right' : ''}`}>
                               {h}
                             </th>
                           ))}
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-[#f0f0f0]">
-                        {filteredProducts.map(prod => (
-                          <tr key={prod._id} className="hover:bg-[#fafafa] transition-colors duration-100">
-
-                            {/* product details cell */}
-                            <td className="px-5 py-3.5 cursor-pointer" onClick={() => openDetail(prod._id)}>
-                              <div className="flex items-center gap-3">
-                                <div className="w-10 h-10 rounded-lg shrink-0 overflow-hidden
-                                                border border-[#e8e8e8] bg-[#f5f5f5]">
-                                  <img src={prod.img} alt={prod.name} className="w-full h-full object-cover" />
+                        {orderedProducts.map(prod => {
+                          const handlers = productDragHandlers(prod._id);
+                          return (
+                            <tr
+                              key={prod._id}
+                              {...handlers}
+                              onDrop={e => handlers.onDrop(e, orderedProducts)}
+                              className={`transition-colors duration-100 ${getProductDragClass(prod._id, true)}`}
+                            >
+                              <td className="px-5 py-3.5 cursor-pointer" onClick={() => openDetail(prod._id)}>
+                                <div className="flex items-center gap-3">
+                                  <div className="w-10 h-10 rounded-lg shrink-0 overflow-hidden border border-[#e8e8e8] bg-[#f5f5f5]">
+                                    <img src={prod.img} alt={prod.name} className="w-full h-full object-cover" />
+                                  </div>
+                                  <div>
+                                    <p className="text-[13px] font-semibold text-[#111111] leading-tight hover:text-[#0b9e7a] transition-colors max-w-[200px] truncate">
+                                      {prod.name}
+                                    </p>
+                                    <p className="text-xs text-[#aaaaaa] mt-0.5">{prod.navCategory}</p>
+                                  </div>
                                 </div>
-                                <div>
-                                  <p className="text-[13px] font-semibold text-[#111111] leading-tight
-                                                hover:text-[#0b9e7a] transition-colors max-w-[200px] truncate">
-                                    {prod.name}
-                                  </p>
-                                  <p className="text-xs text-[#aaaaaa] mt-0.5">{prod.navCategory}</p>
-                                </div>
-                              </div>
-                            </td>
-
-                            <td className="px-5 py-3.5 font-mono text-xs text-[#888888] cursor-pointer"
-                              onClick={() => openDetail(prod._id)}>
-                              {prod.sku}
-                            </td>
-
-                            <td className="px-5 py-3.5 cursor-pointer" onClick={() => openDetail(prod._id)}>
-                              <span className="inline-block bg-[#f0f0f0] text-[#666666] px-2.5 py-1
-                                               rounded-full text-[11px] font-medium whitespace-nowrap">
-                                {prod.accordionCategory}
-                              </span>
-                            </td>
-
-                            <td className="px-5 py-3.5 text-sm text-[#666666] cursor-pointer whitespace-nowrap"
-                              onClick={() => openDetail(prod._id)}>
-                              {prod.size}
-                            </td>
-
-                            <td className="px-5 py-3.5">
-                              <div className="flex items-center gap-2">
-                                <VisibilityToggle
-                                  productId={prod._id}
-                                  initialVisible={prod.isVisible !== false}
-                                  onToggle={handleVisibilityChange}
-                                />
-                                <span className={`text-[11px] font-medium
-                                                  ${prod.isVisible !== false ? 'text-[#0b9e7a]' : 'text-gray-400'}`}>
-                                  {prod.isVisible !== false ? 'Live' : 'Hidden'}
+                              </td>
+                              <td className="px-5 py-3.5 font-mono text-xs text-[#888888] cursor-pointer" onClick={() => openDetail(prod._id)}>
+                                {prod.sku}
+                              </td>
+                              <td className="px-5 py-3.5 cursor-pointer" onClick={() => openDetail(prod._id)}>
+                                <span className="inline-block bg-[#f0f0f0] text-[#666666] px-2.5 py-1 rounded-full text-[11px] font-medium whitespace-nowrap">
+                                  {prod.accordionCategory}
                                 </span>
-                              </div>
-                            </td>
-
-                            {/* ── action buttons ── */}
-                            <td className="px-5 py-3.5 text-right whitespace-nowrap">
-                              <button
-                                onClick={e => openEdit(prod._id, e)}
-                                className="inline-flex items-center gap-1 text-[#888888] hover:text-[#0b9e7a]
-                                           hover:bg-[#edf9f5] transition-colors cursor-pointer
-                                           px-2.5 py-1.5 rounded-lg text-xs font-medium mr-1"
-                                title="Edit product"
-                              >
-                                {Icon.edit}
-                                <span>Edit</span>
-                              </button>
-                              <button
-                                onClick={(e) => {
-                                  e.stopPropagation(); // Prevents the detail modal from opening when clicking delete
-                                  setProductToDelete(prod);
-                                }}
-                                className="inline-flex items-center gap-1 text-[#888888] hover:text-red-500
-                                           hover:bg-red-50 transition-colors cursor-pointer
-                                           px-2.5 py-1.5 rounded-lg text-xs font-medium"
-                                title="Delete product"
-                              >
-                                {Icon.trash}
-                                <span>Delete</span>
-                              </button>
-                            </td>
-
-                          </tr>
-                        ))}
+                              </td>
+                              <td className="px-5 py-3.5 text-sm text-[#666666] cursor-pointer whitespace-nowrap" onClick={() => openDetail(prod._id)}>
+                                {prod.size}
+                              </td>
+                              <td className="px-5 py-3.5">
+                                <div className="flex items-center gap-2">
+                                  <VisibilityToggle
+                                    productId={prod._id}
+                                    initialVisible={prod.isVisible !== false}
+                                    onToggle={handleVisibilityChange}
+                                  />
+                                  <span className={`text-[11px] font-medium ${prod.isVisible !== false ? 'text-[#0b9e7a]' : 'text-gray-400'}`}>
+                                    {prod.isVisible !== false ? 'Live' : 'Hidden'}
+                                  </span>
+                                </div>
+                              </td>
+                              <td className="px-5 py-3.5 text-right whitespace-nowrap">
+                                <button
+                                  onClick={e => openEdit(prod._id, e)}
+                                  className="inline-flex items-center gap-1 text-[#888888] hover:text-[#0b9e7a] hover:bg-[#edf9f5] transition-colors cursor-pointer px-2.5 py-1.5 rounded-lg text-xs font-medium mr-1"
+                                  title="Edit product"
+                                >
+                                  {Icon.edit}
+                                  <span>Edit</span>
+                                </button>
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setProductToDelete(prod);
+                                  }}
+                                  className="inline-flex items-center gap-1 text-[#888888] hover:text-red-500 hover:bg-red-50 transition-colors cursor-pointer px-2.5 py-1.5 rounded-lg text-xs font-medium"
+                                  title="Delete product"
+                                >
+                                  {Icon.trash}
+                                  <span>Delete</span>
+                                </button>
+                              </td>
+                            </tr>
+                          );
+                        })}
                       </tbody>
                     </table>
                   </div>
                 </div>
-
               ) : (
                 /* ── GRID VIEW ── */
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 md:gap-5">
-                  {filteredProducts.map(prod => (
-                    <div key={prod._id}
-                      className="bg-white border border-[#e8e8e8] rounded-xl overflow-hidden
-                                    flex flex-col group shadow-sm hover:shadow-md transition-all duration-200">
-
-                      {/* tile image */}
+                  {orderedProducts.map(prod => {
+                    const handlers = productDragHandlers(prod._id);
+                    return (
                       <div
-                        className="h-40 w-full bg-[#f5f5f5] border-b border-[#f0f0f0] relative
-                                   cursor-pointer overflow-hidden"
-                        onClick={() => openDetail(prod._id)}
+                        key={prod._id}
+                        {...handlers}
+                        onDrop={e => handlers.onDrop(e, orderedProducts)}
+                        className={`bg-white rounded-xl overflow-hidden flex flex-col group shadow-sm transition-all duration-200 ${getProductDragClass(prod._id)}`}
                       >
-                        <img src={prod.img} alt={prod.name}
-                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
-                        <div className="absolute top-2 left-2 flex items-center gap-1.5 bg-white/95
-                                        backdrop-blur-sm px-2 py-1 rounded-full shadow-sm border border-gray-200">
-                          <VisibilityToggle
-                            productId={prod._id}
-                            initialVisible={prod.isVisible !== false}
-                            onToggle={handleVisibilityChange}
-                          />
-                        </div>
-                      </div>
-
-                      {/* card body */}
-                      <div className="p-4 flex flex-col flex-1">
-                        <h3
-                          className="text-[14px] font-bold text-gray-800 leading-tight cursor-pointer
-                                     hover:text-[#0b9e7a] transition-colors line-clamp-2 mb-1"
+                        <div
+                          className="h-40 w-full bg-[#f5f5f5] border-b border-[#f0f0f0] relative cursor-pointer overflow-hidden"
                           onClick={() => openDetail(prod._id)}
                         >
-                          {prod.name}
-                        </h3>
-                        <div className="text-[11px] text-[#aaaaaa] mb-4 truncate">
-                          {prod.navCategory} <span className="mx-1">•</span> {prod.accordionCategory}
+                          <img src={prod.img} alt={prod.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+                          <div className="absolute top-2 left-2 flex items-center gap-1.5 bg-white/95 backdrop-blur-sm px-2 py-1 rounded-full shadow-sm border border-gray-200">
+                            <VisibilityToggle
+                              productId={prod._id}
+                              initialVisible={prod.isVisible !== false}
+                              onToggle={handleVisibilityChange}
+                            />
+                          </div>
                         </div>
 
-                        {/* footer row */}
-                        <div className="mt-auto flex items-center justify-between
-                                        border-t border-[#f0f0f0] pt-3">
-                          <div className="flex flex-col min-w-0">
-                            <span className="text-[10px] text-[#aaaaaa] uppercase font-semibold tracking-wider">
-                              SKU &nbsp;|&nbsp; Size
-                            </span>
-                            <span className="text-[12px] font-medium text-[#555] truncate max-w-[130px]">
-                              {prod.sku} — {prod.size}
-                            </span>
+                        <div className="p-4 flex flex-col flex-1">
+                          <h3
+                            className="text-[14px] font-bold text-gray-800 leading-tight cursor-pointer hover:text-[#0b9e7a] transition-colors line-clamp-2 mb-1"
+                            onClick={() => openDetail(prod._id)}
+                          >
+                            {prod.name}
+                          </h3>
+                          <div className="text-[11px] text-[#aaaaaa] mb-4 truncate">
+                            {prod.navCategory} <span className="mx-1">•</span> {prod.accordionCategory}
                           </div>
 
-                          <div className="flex gap-1.5 shrink-0">
-                            {/* edit button */}
-                            <button
-                              onClick={e => openEdit(prod._id, e)}
-                              className="text-[#aaaaaa] hover:text-[#0b9e7a] bg-[#f8f8f8]
-                                         hover:bg-[#edf9f5] rounded-md p-1.5 transition-colors"
-                              title="Edit"
-                            >
-                              {Icon.edit}
-                            </button>
-                            {/* delete button */}
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                setProductToDelete(prod);
-                              }}
-                              className="text-[#aaaaaa] hover:text-red-500 bg-[#f8f8f8]
-                                         hover:bg-red-50 rounded-md p-1.5 transition-colors"
-                              title="Delete"
-                            >
-                              {Icon.trash}
-                            </button>
+                          <div className="mt-auto flex items-center justify-between border-t border-[#f0f0f0] pt-3">
+                            <div className="flex flex-col min-w-0">
+                              <span className="text-[10px] text-[#aaaaaa] uppercase font-semibold tracking-wider">
+                                SKU &nbsp;|&nbsp; Size
+                              </span>
+                              <span className="text-[12px] font-medium text-[#555] truncate max-w-[130px]">
+                                {prod.sku} — {prod.size}
+                              </span>
+                            </div>
+
+                            <div className="flex gap-1.5 shrink-0">
+                              <button
+                                onClick={e => openEdit(prod._id, e)}
+                                className="text-[#aaaaaa] hover:text-[#0b9e7a] bg-[#f8f8f8] hover:bg-[#edf9f5] rounded-md p-1.5 transition-colors"
+                                title="Edit"
+                              >
+                                {Icon.edit}
+                              </button>
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setProductToDelete(prod);
+                                }}
+                                className="text-[#aaaaaa] hover:text-red-500 bg-[#f8f8f8] hover:bg-red-50 rounded-md p-1.5 transition-colors"
+                                title="Delete"
+                              >
+                                {Icon.trash}
+                              </button>
+                            </div>
                           </div>
                         </div>
                       </div>
-
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               )}
             </>
@@ -676,7 +631,6 @@ export default function ProductManager() {
       </main>
 
       {/* ═══════════ MODALS ═══════════ */}
-
       {isTileModalOpen && (
         <UploadTileModal
           onClose={() => setIsTileModalOpen(false)}
@@ -696,17 +650,17 @@ export default function ProductManager() {
           productId={detailProductId}
           initialMode={detailMode}
           onClose={closeDetail}
-          onSuccess={fetchProductsData}   // refresh list silently after save
+          onSuccess={fetchProductsData}
         />
       )}
-      {/* NEW Delete Modal */}
+
       {productToDelete && (
         <DeleteProductModal
           product={productToDelete}
           onClose={() => setProductToDelete(null)}
           onSuccess={() => {
             setProductToDelete(null);
-            fetchProductsData(); // Instantly refresh the grid after successful deletion
+            fetchProductsData();
           }}
         />
       )}
