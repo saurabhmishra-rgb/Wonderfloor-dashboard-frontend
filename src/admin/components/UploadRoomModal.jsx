@@ -1,25 +1,22 @@
 import { useState, useRef } from 'react';
 
 const INITIAL_ROOM_CATEGORIES = [
-  'Industrial Flooring', 'Office Flooring', 'Residential Flooring', 
-  'School Flooring', 'Sports Flooring', 'Supermarket Flooring', 
-  'Transport Flooring', 'Hospital Flooring', 'Auditorium Flooring', 
-  'Hotel/ Hospitality Flooring' 
+  'Industrial Flooring', 'Office Flooring', 'Residential Flooring',
+  'School Flooring', 'Sports Flooring', 'Supermarket Flooring',
+  'Transport Flooring', 'Hospital Flooring', 'Auditorium Flooring',
+  'Hotel/ Hospitality Flooring'
 ];
-
 const INITIAL_PRODUCT_COLLECTIONS = [
-   'Braavo', 'Krayons', 'Durofloor', 'Siggma', 'Orbit', 'Stoneland Monza', 
-  'Antique', 'Adventus', 'Duratek', 'Galaxxy', 'GDP', 'Hi-Tech', 'Luxuria', 
-  'Matrixx', 'Meteor', 'Ornate', 'Oriion', 'Rangolie', 'Rhythm', 'Robust', 
-  'Traction / Safety', 'Trendo Wood', 'Trendo Chips', 'Uttsav',  
-  'Aventus', 'Timberworld 1.5mm', 'Timberland Exotica 2mm', 
-  'Timberland Maestro 3mm', 'Timberland Herringbone', 'Timberland Widex', 
+  'Braavo', 'Krayons', 'Durofloor', 'Siggma', 'Orbit', 'Stoneland Monza',
+  'Antique', 'Adventus', 'Duratek', 'Galaxxy', 'GDP', 'Hi-Tech', 'Luxuria',
+  'Matrixx', 'Meteor', 'Ornate', 'Oriion', 'Rangolie', 'Rhythm', 'Robust',
+  'Traction / Safety', 'Trendo Wood', 'Trendo Chips', 'Uttsav',
+  'Aventus', 'Timberworld 1.5mm', 'Timberland Exotica 2mm',
+  'Timberland Maestro 3mm', 'Timberland Herringbone', 'Timberland Widex',
   'Grandeure Supreme'
-
 ];
-
 // ─── Persistent Memory (Lives outside the modal lifecycle) ────────────────────
-let persistentRoomCategories     = [...INITIAL_ROOM_CATEGORIES];
+let persistentRoomCategories = [...INITIAL_ROOM_CATEGORIES];
 let persistentProductCollections = [...INITIAL_PRODUCT_COLLECTIONS];
 
 export default function UploadRoomModal({ onClose, onSuccess }) {
@@ -117,15 +114,17 @@ export default function UploadRoomModal({ onClose, onSuccess }) {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-sm p-4 animate-fade-in"
-       onClick={onClose}>
+      onClick={onClose}
+    >
       <div className="bg-white border border-slate-200 rounded-xl w-full max-w-2xl shadow-2xl flex flex-col max-h-[90vh]"
-          onClick={e => e.stopPropagation()}>
+        onClick={e => e.stopPropagation()}
+      >
 
         {/* Header */}
         <div className="flex justify-between items-center px-6 py-4 border-b border-slate-100 shrink-0">
           <h2 className="text-lg font-semibold text-slate-800">Upload New Room</h2>
           <button onClick={onClose} className="text-slate-400 hover:text-slate-600 transition-colors cursor-pointer p-1 rounded-lg hover:bg-slate-50">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
           </button>
         </div>
 
@@ -155,7 +154,7 @@ export default function UploadRoomModal({ onClose, onSuccess }) {
               <div className="relative">
                 {/* Hidden field passes dropdown value directly to core FormData object */}
                 <input type="hidden" name="category" value={selectedCategory} required />
-                
+
                 <div
                   onClick={() => setIsCategoryOpen(!isCategoryOpen)}
                   className="w-full bg-white border border-slate-200 rounded-lg px-4 py-2.5 text-slate-800 text-sm focus-within:border-[#0b9e7a] focus-within:ring-1 focus-within:ring-[#0b9e7a] transition-all flex justify-between items-center cursor-pointer select-none"
@@ -203,7 +202,7 @@ export default function UploadRoomModal({ onClose, onSuccess }) {
                           >
                             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                               <line x1="18" y1="6" x2="6" y2="18" />
-                              <line x1="6"  y1="6" x2="18" y2="18" />
+                              <line x1="6" y1="6" x2="18" y2="18" />
                             </svg>
                           </button>
                         </li>
@@ -240,49 +239,54 @@ export default function UploadRoomModal({ onClose, onSuccess }) {
             </label>
             <div className="bg-white border border-slate-200 rounded-lg p-4 shadow-sm flex flex-col gap-4">
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-                {collections.map(collection => (
-                  <div key={collection} className="relative group flex items-center justify-between py-1 px-2 border border-transparent hover:border-slate-100 rounded-lg transition-all">
-                    <label className="flex items-center gap-2.5 cursor-pointer flex-1 min-w-0">
-                      <input
-                        type="checkbox" className="hidden"
-                        checked={selectedCollections.includes(collection)}
-                        onChange={() => toggleCollection(collection)}
-                      />
-                      <div className={`w-4 h-4 rounded flex items-center justify-center border shrink-0 transition-all
-                        ${selectedCollections.includes(collection)
-                          ? 'bg-[#0b9e7a] border-[#0b9e7a]'
-                          : 'bg-slate-50 border-slate-300 group-hover:border-slate-400'}`}>
-                        {selectedCollections.includes(collection) && (
-                          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3">
-                            <polyline points="20 6 9 17 4 12"/>
-                          </svg>
-                        )}
-                      </div>
-                      <span className="text-xs font-medium text-slate-600 group-hover:text-slate-900 transition-colors truncate pr-4">
-                        {collection}
-                      </span>
-                    </label>
+                {collections.map(collection => {
+                  const orderIndex = selectedCollections.indexOf(collection); // -1 if not selected
+                  const isSelected = orderIndex !== -1;
 
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setCollections(prev => {
-                          const updated = prev.filter(c => c !== collection);
-                          persistentProductCollections = updated;
-                          return updated;
-                        });
-                        setSelectedCollections(prev => prev.filter(c => c !== collection));
-                      }}
-                      className="text-slate-400 hover:text-red-500 p-0.5 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap animate-fade-in"
-                      title={`Remove ${collection}`}
-                    >
-                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                        <line x1="18" y1="6" x2="6" y2="18" />
-                        <line x1="6"  y1="6" x2="18" y2="18" />
-                      </svg>
-                    </button>
-                  </div>
-                ))}
+                  return (
+                    <div key={collection} className="relative group flex items-center justify-between py-1 px-2 border border-transparent hover:border-slate-100 rounded-lg transition-all">
+                      <label className="flex items-center gap-2.5 cursor-pointer flex-1 min-w-0">
+                        <input
+                          type="checkbox" className="hidden"
+                          checked={isSelected}
+                          onChange={() => toggleCollection(collection)}
+                        />
+                        {/* Badge shows selection order instead of a plain checkmark */}
+                        <div className={`w-4 h-4 rounded flex items-center justify-center border shrink-0 transition-all
+          ${isSelected
+                            ? 'bg-[#0b9e7a] border-[#0b9e7a]'
+                            : 'bg-slate-50 border-slate-300 group-hover:border-slate-400'}`}>
+                          {isSelected && (
+                            <span className="text-white text-[9px] font-bold leading-none">
+                              {orderIndex + 1}
+                            </span>
+                          )}
+                        </div>
+                        <span className="text-xs font-medium text-slate-600 group-hover:text-slate-900 transition-colors truncate pr-4">
+                          {collection}
+                        </span>
+                      </label>
+
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setCollections(prev => {
+                            const updated = prev.filter(c => c !== collection);
+                            persistentProductCollections = updated;
+                            return updated;
+                          });
+                          setSelectedCollections(prev => prev.filter(c => c !== collection));
+                        }}
+                        className="text-slate-400 hover:text-red-500 p-0.5 rounded opacity-0 group-hover:opacity-100 transition-opacity"
+                        title={`Remove ${collection}`}
+                      >
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                          <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
+                        </svg>
+                      </button>
+                    </div>
+                  );
+                })}
               </div>
 
               {/* Inline custom collection adder */}
@@ -320,7 +324,7 @@ export default function UploadRoomModal({ onClose, onSuccess }) {
                 />
                 {basePreview ? (
                   <>
-                    <img src={basePreview} alt="Base Preview" className="w-full h-full object-cover"/>
+                    <img src={basePreview} alt="Base Preview" className="w-full h-full object-cover" />
                     <div className="absolute inset-0 bg-slate-900/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity z-10">
                       <span className="text-slate-800 text-xs font-semibold bg-white px-3 py-1.5 rounded-md shadow-md">Change Image</span>
                     </div>
@@ -328,7 +332,7 @@ export default function UploadRoomModal({ onClose, onSuccess }) {
                 ) : (
                   <div className="flex flex-col items-center pointer-events-none text-slate-400 group-hover:text-[#0b9e7a] transition-colors">
                     <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="mb-2">
-                      <rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/>
+                      <rect x="3" y="3" width="18" height="18" rx="2" /><circle cx="8.5" cy="8.5" r="1.5" /><polyline points="21 15 16 10 5 21" />
                     </svg>
                     <span className="text-xs font-medium">Upload Room Photo</span>
                   </div>
@@ -361,7 +365,7 @@ export default function UploadRoomModal({ onClose, onSuccess }) {
                 ) : (
                   <div className="flex flex-col items-center pointer-events-none text-slate-400 group-hover:text-[#0b9e7a] transition-colors gap-1">
                     <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="mb-1">
-                      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/>
+                      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="17 8 12 3 7 8" /><line x1="12" y1="3" x2="12" y2="15" />
                     </svg>
                     <span className="text-xs font-medium">Upload Floor Mask</span>
                     <span className="text-[10px] text-slate-400">Skip for 2D rooms</span>
