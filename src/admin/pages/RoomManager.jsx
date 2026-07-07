@@ -190,18 +190,22 @@ export default function RoomManager() {
   // 🆕 Selection mode ke liye state
   const [selectMode, setSelectMode] = useState(false);
   const [selectedIds, setSelectedIds] = useState(new Set());
+  // const [selectedIds, setSelectedIds] = useState([]);
   const [showSortPanel, setShowSortPanel] = useState(false);
 
   function toggleSelectMode() {
     setSelectMode(prev => !prev);
-    setSelectedIds(new Set());
+    setSelectedIds([]);
   }
 
   function toggleRoomSelect(id) {
     setSelectedIds(prev => {
-      const next = new Set(prev);
-      next.has(id) ? next.delete(id) : next.add(id);
-      return next;
+      if (prev.includes(id)) {
+        // pehle se selected hai → remove karo
+        return prev.filter(sid => sid !== id);
+      }
+      // naya select → end mein add karo (isse number badhta jaayega)
+      return [...prev, id];
     });
   }
   const getCount = (cat) =>
@@ -320,11 +324,10 @@ export default function RoomManager() {
           <div className="flex items-center gap-2 shrink-0">
             <button
               onClick={toggleSelectMode}
-              className={`flex items-center gap-1.5 px-3 md:px-4 py-2 rounded-lg transition-colors cursor-pointer text-xs md:text-sm font-medium shrink-0 whitespace-nowrap border ${
-                selectMode
-                  ? 'bg-[#0b9e7a] text-white border-[#0b9e7a]'
-                  : 'bg-white text-[#555] border-[#e0e0e0] hover:bg-slate-50'
-              }`}
+              className={`flex items-center gap-1.5 px-3 md:px-4 py-2 rounded-lg transition-colors cursor-pointer text-xs md:text-sm font-medium shrink-0 whitespace-nowrap border ${selectMode
+                ? 'bg-[#0b9e7a] text-white border-[#0b9e7a]'
+                : 'bg-white text-[#555] border-[#e0e0e0] hover:bg-slate-50'
+                }`}
             >
               {selectMode ? `Cancel (${selectedIds.size})` : 'Select'}
             </button>
@@ -510,7 +513,7 @@ export default function RoomManager() {
                 <div
                   key={room._id}
                   onClick={() => selectMode ? toggleRoomSelect(room._id) : openRoomDetail(room._id)}
-                  className={`bg-white border rounded-xl overflow-hidden flex flex-col group shadow-sm transition-all duration-200 cursor-pointer ${selectMode && selectedIds.has(room._id)
+                  className={`bg-white border rounded-xl overflow-hidden flex flex-col group shadow-sm transition-all duration-200 cursor-pointer ${selectMode && selectedIds.includes(room._id)
                       ? 'border-[#0b9e7a] ring-2 ring-[#0b9e7a]/30'
                       : 'border-[#e8e8e8] hover:shadow-md hover:-translate-y-0.5 active:scale-[0.98]'
                     }`}
@@ -523,14 +526,22 @@ export default function RoomManager() {
                     />
 
                     {selectMode ? (
-                      <div className="absolute top-2.5 left-2.5 z-10">
-                        <input
-                          type="checkbox"
-                          checked={selectedIds.has(room._id)}
-                          onChange={() => toggleRoomSelect(room._id)}
-                          onClick={(e) => e.stopPropagation()}
-                          className="w-5 h-5 accent-[#0b9e7a] cursor-pointer"
-                        />
+                      <div className="absolute top-2.5 left-2.5 z-10" onClick={(e) => e.stopPropagation()}>
+                        {(() => {
+                          const selectionIndex = selectedIds.indexOf(room._id); // -1 agar select nahi hai
+                          const isSelected = selectionIndex !== -1;
+                          return (
+                            <button
+                              onClick={() => toggleRoomSelect(room._id)}
+                              className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold shadow-sm border-2 transition-all duration-150 cursor-pointer ${isSelected
+                                ? 'bg-[#0b9e7a] text-white border-[#0b9e7a]'
+                                : 'bg-white/90 text-transparent border-[#cccccc] hover:border-[#0b9e7a]'
+                                }`}
+                            >
+                              {isSelected ? selectionIndex + 1 : ''}
+                            </button>
+                          );
+                        })()}
                       </div>
                     ) : (
                       <>
@@ -622,7 +633,7 @@ export default function RoomManager() {
         />
       )}
 
-     {roomToDelete && (
+      {roomToDelete && (
         <DeleteRoomModal
           room={roomToDelete}
           onClose={() => setRoomToDelete(null)}
@@ -634,9 +645,9 @@ export default function RoomManager() {
       )}
 
       {/* 🆕 FLOATING BAR + SORT PANEL YAHA PASTE KIYA */}
-      {selectMode && selectedIds.size > 0 && (
+      {selectMode && selectedIds.length > 0 && (
         <div className="fixed bottom-6 left-1/2 -translate-x-1/2 bg-white shadow-xl border border-[#e8e8e8] rounded-full px-4 py-2.5 flex items-center gap-3 z-50">
-          <span className="text-xs font-medium text-gray-600">{selectedIds.size} selected</span>
+          <span className="text-xs font-medium text-gray-600">{selectedIds.length} selected</span>
           <button
             onClick={() => setShowSortPanel(true)}
             className="px-3 py-1.5 rounded-full text-xs font-semibold bg-[#0b9e7a] text-white cursor-pointer hover:bg-[#09866a]"
@@ -646,17 +657,17 @@ export default function RoomManager() {
         </div>
       )}
 
-      {showSortPanel && (
-        <RoomSortPanel
-          rooms={filteredRooms.filter(r => selectedIds.has(r._id))}
-          onSave={handleSaveSelectedOrder}
-          onClose={() => {
-            setShowSortPanel(false);
-            setSelectMode(false);
-            setSelectedIds(new Set());
-          }}
-        />
-      )}
+     {showSortPanel && (
+  <RoomSortPanel
+    rooms={selectedIds.map(id => filteredRooms.find(r => r._id === id)).filter(Boolean)}
+    onSave={handleSaveSelectedOrder}
+    onClose={() => {
+      setShowSortPanel(false);
+      setSelectMode(false);
+      setSelectedIds([]); // Set() ki jagah empty array
+    }}
+  />
+)}
     </div>
   );
 }
