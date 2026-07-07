@@ -28,7 +28,7 @@ export function useRoomSort(rooms, setRooms, filteredRooms, fetchRoomsData) {
 
     // 4. Backend database sync hit karein
     try {
-      const response = await fetch('http://localhost:8000/rooms/reorder', {
+      const response = await fetch('https://wonderfloor-dashboard.vercel.app/rooms/reorder', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ orderedIds: currentFilteredList.map(i => i._id) }),
