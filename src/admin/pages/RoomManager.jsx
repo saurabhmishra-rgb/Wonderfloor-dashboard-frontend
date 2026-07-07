@@ -12,6 +12,10 @@ import { useRoomSort } from '../../hooks/useRoomSort';
 import { useCategorySort } from '../../hooks/useRoomCategorySort';
 import PositionInput from '../components/RoomPositionInput';
 import CategoryPositionInput from '../components/CategoryPositionInput';
+import RoomSortPanel from '../components/RoomSortPanel';
+
+
+
 const Icon = {
   grid: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><rect x="3" y="3" width="7" height="7" /><rect x="14" y="3" width="7" height="7" /><rect x="14" y="14" width="7" height="7" /><rect x="3" y="14" width="7" height="7" /></svg>,
   photo: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><rect x="3" y="3" width="18" height="18" rx="2" /><circle cx="8.5" cy="8.5" r="1.5" /><polyline points="21 15 16 10 5 21" /></svg>,
@@ -74,13 +78,13 @@ export default function RoomManager() {
   const location = useLocation();
   const activePage = navItems.find(item => item.path === location.pathname)?.key || 'rooms';
 
- async function fetchRoomsData() {
+  async function fetchRoomsData() {
     setLoading(true);
     try {
       const response = await fetch('https://wonderfloor-dashboard.vercel.app/rooms');
       if (!response.ok) throw new Error('Failed to fetch data');
       const data = await response.json();
-      
+
       // Backend se sorted data aa raha hai, use seedhe state mein set karein
       setRooms(data.map(r => ({ ...r, isLive: r.isLive === true })));
     } catch (error) {
@@ -121,7 +125,7 @@ export default function RoomManager() {
     e.stopPropagation();
     setTogglingId(roomId);
     try {
-      const res = await fetch(`https://wonderfloor-dashboard.vercel.app/${roomId}/toggle-live`, {
+      const res = await fetch(`https://wonderfloor-dashboard.vercel.app/rooms/${roomId}/toggle-live`, {
         method: 'PATCH',
       });
       if (!res.ok) throw new Error('Toggle failed');
@@ -161,13 +165,13 @@ export default function RoomManager() {
   }
 
   // ✅ Corrected: Array ka natural order maintain rehne dein jo sorted rooms se aa raha hai
-const dynamicCategories = ['All', ...Array.from(
-  new Set(
-    rooms
-      .map(r => r.category?.replace(' Flooring', '').trim())
-      .filter(Boolean)
-  )
-)];
+  const dynamicCategories = ['All', ...Array.from(
+    new Set(
+      rooms
+        .map(r => r.category?.replace(' Flooring', '').trim())
+        .filter(Boolean)
+    )
+  )];
 
   const categoryFiltered = activeTab === 'All'
     ? rooms
@@ -182,8 +186,24 @@ const dynamicCategories = ['All', ...Array.from(
   });
 
   // Apne component ke state ke just neeche is hook ko call karein
-  const { handleManualPositionChange } = useRoomSort(rooms, setRooms, filteredRooms, fetchRoomsData);
+  const { handleManualPositionChange, handleSaveSelectedOrder } = useRoomSort(rooms, setRooms, filteredRooms, fetchRoomsData);
+  // 🆕 Selection mode ke liye state
+  const [selectMode, setSelectMode] = useState(false);
+  const [selectedIds, setSelectedIds] = useState(new Set());
+  const [showSortPanel, setShowSortPanel] = useState(false);
 
+  function toggleSelectMode() {
+    setSelectMode(prev => !prev);
+    setSelectedIds(new Set());
+  }
+
+  function toggleRoomSelect(id) {
+    setSelectedIds(prev => {
+      const next = new Set(prev);
+      next.has(id) ? next.delete(id) : next.add(id);
+      return next;
+    });
+  }
   const getCount = (cat) =>
     cat === 'All'
       ? rooms.length
@@ -299,6 +319,16 @@ const dynamicCategories = ['All', ...Array.from(
           <GlobalSearch />
           <div className="flex items-center gap-2 shrink-0">
             <button
+              onClick={toggleSelectMode}
+              className={`flex items-center gap-1.5 px-3 md:px-4 py-2 rounded-lg transition-colors cursor-pointer text-xs md:text-sm font-medium shrink-0 whitespace-nowrap border ${
+                selectMode
+                  ? 'bg-[#0b9e7a] text-white border-[#0b9e7a]'
+                  : 'bg-white text-[#555] border-[#e0e0e0] hover:bg-slate-50'
+              }`}
+            >
+              {selectMode ? `Cancel (${selectedIds.size})` : 'Select'}
+            </button>
+            <button
               onClick={() => setIsBulkModalOpen(true)}
               className="flex items-center gap-1.5 bg-white hover:bg-slate-50 border border-[#e0e0e0] text-[#555] px-3 md:px-4 py-2 rounded-lg transition-colors cursor-pointer text-xs md:text-sm font-medium shrink-0 whitespace-nowrap"
             >
@@ -339,7 +369,7 @@ const dynamicCategories = ['All', ...Array.from(
               </span>
             </div>
 
-           {showCatSettings && (
+            {showCatSettings && (
               <div className="mt-4 pt-3 border-t border-dashed border-[#e8e8e8] grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
                 {getUniqueCategories().map((catName) => (
                   <CategoryPositionInput
@@ -479,8 +509,11 @@ const dynamicCategories = ['All', ...Array.from(
               {filteredRooms.map((room, index) => ( // 👈 Yahan '=> (' lagana zaroori tha
                 <div
                   key={room._id}
-                  onClick={() => openRoomDetail(room._id)}
-                  className="bg-white border border-[#e8e8e8] rounded-xl overflow-hidden flex flex-col group shadow-sm hover:shadow-md transition-all duration-200 cursor-pointer hover:-translate-y-0.5 active:scale-[0.98]"
+                  onClick={() => selectMode ? toggleRoomSelect(room._id) : openRoomDetail(room._id)}
+                  className={`bg-white border rounded-xl overflow-hidden flex flex-col group shadow-sm transition-all duration-200 cursor-pointer ${selectMode && selectedIds.has(room._id)
+                      ? 'border-[#0b9e7a] ring-2 ring-[#0b9e7a]/30'
+                      : 'border-[#e8e8e8] hover:shadow-md hover:-translate-y-0.5 active:scale-[0.98]'
+                    }`}
                 >
                   <div className="h-40 md:h-44 w-full overflow-hidden bg-[#f5f5f5] relative">
                     <img
@@ -489,22 +522,33 @@ const dynamicCategories = ['All', ...Array.from(
                       className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                     />
 
-                    {/* 🔢 POSITION INPUT COMPONENT PLACED SAFELY HERE */}
-                    <PositionInput
-                      roomId={room._id}
-                      currentIndex={index}
-                      totalItems={filteredRooms.length}
-                      onPositionChange={handleManualPositionChange}
-                    />
-
-                    <div className="absolute top-2.5 left-2.5" onClick={(e) => e.stopPropagation()}>
-                      <LiveToggle
-                        isLive={room.isLive}
-                        loading={togglingId === room._id}
-                        onToggle={(e) => handleToggleLive(e, room._id)}
-                      />
-                    </div>
-
+                    {selectMode ? (
+                      <div className="absolute top-2.5 left-2.5 z-10">
+                        <input
+                          type="checkbox"
+                          checked={selectedIds.has(room._id)}
+                          onChange={() => toggleRoomSelect(room._id)}
+                          onClick={(e) => e.stopPropagation()}
+                          className="w-5 h-5 accent-[#0b9e7a] cursor-pointer"
+                        />
+                      </div>
+                    ) : (
+                      <>
+                        <PositionInput
+                          roomId={room._id}
+                          currentIndex={index}
+                          totalItems={filteredRooms.length}
+                          onPositionChange={handleManualPositionChange}
+                        />
+                        <div className="absolute top-2.5 left-2.5" onClick={(e) => e.stopPropagation()}>
+                          <LiveToggle
+                            isLive={room.isLive}
+                            loading={togglingId === room._id}
+                            onToggle={(e) => handleToggleLive(e, room._id)}
+                          />
+                        </div>
+                      </>
+                    )}
 
                     {room.maskUrl && (
                       <span className="absolute top-2.5 right-2.5 text-[10px] font-semibold bg-white text-[#0b9e7a] border border-[#0b9e7a] px-2 py-0.5 rounded-full shadow-sm">
@@ -512,6 +556,7 @@ const dynamicCategories = ['All', ...Array.from(
                       </span>
                     )}
                   </div>
+                  {/* baaki card content same rahega */}
 
                   <div className="p-3 md:p-4 flex flex-col flex-1">
                     <h3 className="text-[14px] font-bold text-gray-800 leading-tight truncate mb-1" title={room.name}>
@@ -577,13 +622,38 @@ const dynamicCategories = ['All', ...Array.from(
         />
       )}
 
-      {roomToDelete && (
+     {roomToDelete && (
         <DeleteRoomModal
           room={roomToDelete}
           onClose={() => setRoomToDelete(null)}
           onSuccess={() => {
             setRoomToDelete(null);
             fetchRoomsData();
+          }}
+        />
+      )}
+
+      {/* 🆕 FLOATING BAR + SORT PANEL YAHA PASTE KIYA */}
+      {selectMode && selectedIds.size > 0 && (
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 bg-white shadow-xl border border-[#e8e8e8] rounded-full px-4 py-2.5 flex items-center gap-3 z-50">
+          <span className="text-xs font-medium text-gray-600">{selectedIds.size} selected</span>
+          <button
+            onClick={() => setShowSortPanel(true)}
+            className="px-3 py-1.5 rounded-full text-xs font-semibold bg-[#0b9e7a] text-white cursor-pointer hover:bg-[#09866a]"
+          >
+            Arrange Order
+          </button>
+        </div>
+      )}
+
+      {showSortPanel && (
+        <RoomSortPanel
+          rooms={filteredRooms.filter(r => selectedIds.has(r._id))}
+          onSave={handleSaveSelectedOrder}
+          onClose={() => {
+            setShowSortPanel(false);
+            setSelectMode(false);
+            setSelectedIds(new Set());
           }}
         />
       )}
