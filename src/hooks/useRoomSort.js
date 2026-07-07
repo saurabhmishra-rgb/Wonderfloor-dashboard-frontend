@@ -28,7 +28,7 @@ export function useRoomSort(rooms, setRooms, filteredRooms, fetchRoomsData) {
 
     // 4. Backend database sync hit karein
     try {
-      const response = await fetch('https://wonderfloor-dashboard.vercel.app/rooms/reorder', {
+      const response = await fetch('http://localhost:8000/rooms/reorder', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ orderedIds: currentFilteredList.map(i => i._id) }),
@@ -42,5 +42,46 @@ export function useRoomSort(rooms, setRooms, filteredRooms, fetchRoomsData) {
     }
   }
 
-  return { handleManualPositionChange, isSorting };
+ // 🆕 NAYA FUNCTION: Sirf selected rooms ka order save karega,
+  // baaki rooms apni original relative position par rahenge
+  async function handleSaveSelectedOrder(reorderedSelectedIds) {
+    const selectedSet = new Set(reorderedSelectedIds);
+    const fullOrder = [];
+    let pointer = 0;
+
+    // filteredRooms ke current sequence mein jahan bhi selected room mila,
+    // usko naye reordered sequence se replace karte jao
+    filteredRooms.forEach((room) => {
+      if (selectedSet.has(room._id)) {
+        fullOrder.push(reorderedSelectedIds[pointer]);
+        pointer++;
+      } else {
+        fullOrder.push(room._id);
+      }
+    });
+
+    // Optimistic UI update
+    const updatedRooms = rooms.map((room) => {
+      const newIdx = fullOrder.indexOf(room._id);
+      return newIdx !== -1 ? { ...room, position: newIdx } : room;
+    });
+    setRooms(updatedRooms.sort((a, b) => a.position - b.position));
+    setIsSorting(true);
+
+    try {
+      const response = await fetch('http://localhost:8000/rooms/reorder', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ orderedIds: fullOrder }),
+      });
+      if (!response.ok) throw new Error('Failed to save selected sequence');
+    } catch (error) {
+      console.error('Selected sort sync failed:', error);
+      fetchRoomsData(); // rollback
+    } finally {
+      setIsSorting(false);
+    }
+  }
+
+  return { handleManualPositionChange, handleSaveSelectedOrder, isSorting };
 }
