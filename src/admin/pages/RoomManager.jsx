@@ -7,7 +7,11 @@ import RoomDetail from './RoomDetail';
 import DeleteRoomModal from '../components/DeleteProductModal'; // Import the new clear delete handler component
 import { useSearch } from '../components/SearchContext'; // <-- Import the search context hook
 import GlobalSearch from '../components/GlobalSearch'; // If you want to show it in the header
-
+// Top par custom hook aur input component import karein
+import { useRoomSort } from '../../hooks/useRoomSort';
+import { useCategorySort } from '../../hooks/useRoomCategorySort';
+import PositionInput from '../components/RoomPositionInput';
+import CategoryPositionInput from '../components/CategoryPositionInput';
 const Icon = {
   grid: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><rect x="3" y="3" width="7" height="7" /><rect x="14" y="3" width="7" height="7" /><rect x="14" y="14" width="7" height="7" /><rect x="3" y="14" width="7" height="7" /></svg>,
   photo: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><rect x="3" y="3" width="18" height="18" rx="2" /><circle cx="8.5" cy="8.5" r="1.5" /><polyline points="21 15 16 10 5 21" /></svg>,
@@ -19,7 +23,7 @@ const Icon = {
   close: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>,
   edit: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" /><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" /></svg>,
   trash: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="3 6 5 6 21 6" /><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" /><line x1="10" y1="11" x2="10" y2="17" /><line x1="14" y1="11" x2="14" y2="17" /></svg>,
-   logout: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>,
+  logout: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" /><polyline points="16 17 21 12 16 7" /><line x1="21" y1="12" x2="9" y2="12" /></svg>,
 };
 
 const navItems = [
@@ -61,6 +65,8 @@ export default function RoomManager() {
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
   const [isBulkModalOpen, setIsBulkModalOpen] = useState(false);
 
+  const { handleCategoryTierShift, getUniqueCategories } = useCategorySort(rooms, setRooms, fetchRoomsData);
+  const [showCatSettings, setShowCatSettings] = useState(false);
   const [editingCategory, setEditingCategory] = useState(null);
   const [editingCategoryValue, setEditingCategoryValue] = useState('');
 
@@ -68,12 +74,14 @@ export default function RoomManager() {
   const location = useLocation();
   const activePage = navItems.find(item => item.path === location.pathname)?.key || 'rooms';
 
-  async function fetchRoomsData() {
+ async function fetchRoomsData() {
     setLoading(true);
     try {
       const response = await fetch('https://wonderfloor-dashboard.vercel.app/rooms');
       if (!response.ok) throw new Error('Failed to fetch data');
       const data = await response.json();
+      
+      // Backend se sorted data aa raha hai, use seedhe state mein set karein
       setRooms(data.map(r => ({ ...r, isLive: r.isLive === true })));
     } catch (error) {
       console.error('Error fetching rooms:', error);
@@ -113,7 +121,7 @@ export default function RoomManager() {
     e.stopPropagation();
     setTogglingId(roomId);
     try {
-      const res = await fetch(`https://wonderfloor-dashboard.vercel.app/rooms/${roomId}/toggle-live`, {
+      const res = await fetch(`https://wonderfloor-dashboard.vercel.app/${roomId}/toggle-live`, {
         method: 'PATCH',
       });
       if (!res.ok) throw new Error('Toggle failed');
@@ -152,13 +160,14 @@ export default function RoomManager() {
     }
   }
 
-  const dynamicCategories = ['All', ...Array.from(
-    new Set(
-      rooms
-        .map(r => r.category?.replace(' Flooring', '').trim())
-        .filter(Boolean)
-    )
-  ).sort()];
+  // ✅ Corrected: Array ka natural order maintain rehne dein jo sorted rooms se aa raha hai
+const dynamicCategories = ['All', ...Array.from(
+  new Set(
+    rooms
+      .map(r => r.category?.replace(' Flooring', '').trim())
+      .filter(Boolean)
+  )
+)];
 
   const categoryFiltered = activeTab === 'All'
     ? rooms
@@ -171,6 +180,9 @@ export default function RoomManager() {
       room.category?.toLowerCase().includes(query)
     );
   });
+
+  // Apne component ke state ke just neeche is hook ko call karein
+  const { handleManualPositionChange } = useRoomSort(rooms, setRooms, filteredRooms, fetchRoomsData);
 
   const getCount = (cat) =>
     cat === 'All'
@@ -195,10 +207,10 @@ export default function RoomManager() {
       <div className="px-5 pt-5 pb-[18px] border-b border-[#e8e8e8] flex items-center justify-between">
         <div>
           <div className="text-[17px] font-semibold text-[#111111] tracking-tight"> <img
-                src="https://www.wonderfloor.co.in/assets/img/logo/logo.png"
-                alt="Logo"
-                className="h-8 max-w-[150px] md:max-w-[180px] object-contain"
-              /></div>
+            src="https://www.wonderfloor.co.in/assets/img/logo/logo.png"
+            alt="Logo"
+            className="h-8 max-w-[150px] md:max-w-[180px] object-contain"
+          /></div>
           {/* <div className="text-xs text-[#aaaaaa] mt-0.5">Admin panel</div> */}
         </div>
         <button
@@ -237,21 +249,21 @@ export default function RoomManager() {
         })}
       </nav>
 
-     <div className="px-5 pt-3.5 pb-[18px] border-t border-[#e8e8e8] flex justify-between items-center">
-          <div>
-            <div className="text-[11px] text-[#aaaaaa]">Logged in as</div>
-            <div className="text-[13px] font-medium text-[#333333] mt-0.5">Admin</div>
-          </div>
-
-          {/* 👇 YOUR LOGOUT BUTTON 👇 */}
-          <button
-            onClick={() => navigate('/admin/logout')}
-            className="text-[#888888] hover:text-red-500 transition-colors p-2 rounded-md hover:bg-red-50 cursor-pointer"
-            title="Log Out"
-          >
-            {Icon.logout}
-          </button>
+      <div className="px-5 pt-3.5 pb-[18px] border-t border-[#e8e8e8] flex justify-between items-center">
+        <div>
+          <div className="text-[11px] text-[#aaaaaa]">Logged in as</div>
+          <div className="text-[13px] font-medium text-[#333333] mt-0.5">Admin</div>
         </div>
+
+        {/* 👇 YOUR LOGOUT BUTTON 👇 */}
+        <button
+          onClick={() => navigate('/admin/logout')}
+          className="text-[#888888] hover:text-red-500 transition-colors p-2 rounded-md hover:bg-red-50 cursor-pointer"
+          title="Log Out"
+        >
+          {Icon.logout}
+        </button>
+      </div>
     </>
   );
 
@@ -313,7 +325,38 @@ export default function RoomManager() {
           <p className="text-sm text-[#aaaaaa] mb-4 md:mb-5">
             {rooms.length} room{rooms.length !== 1 ? 's' : ''} in library
           </p>
+          {/* 🎛️ CATEGORY ORDER CONTROL WRAPPER PANEL */}
+          <div className="mb-5 bg-white border border-[#e8e8e8] rounded-xl p-4 shadow-sm">
+            <div className="flex items-center justify-between cursor-pointer" onClick={() => setShowCatSettings(!showCatSettings)}>
+              <div className="flex items-center gap-2 text-sm font-semibold text-gray-700">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <line x1="4" y1="6" x2="20" y2="6" /><line x1="4" y1="12" x2="14" y2="12" /><line x1="4" y1="18" x2="18" y2="18" />
+                </svg>
+                <span>Configure Industry Tab Sequences</span>
+              </div>
+              <span className="text-xs text-[#0b9e7a] font-bold select-none">
+                {showCatSettings ? 'Hide Settings ▲' : 'Configure Order ▼'}
+              </span>
+            </div>
 
+           {showCatSettings && (
+              <div className="mt-4 pt-3 border-t border-dashed border-[#e8e8e8] grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
+                {getUniqueCategories().map((catName) => (
+                  <CategoryPositionInput
+                    key={catName}
+                    catName={catName}
+                    currentIndex={getUniqueCategories().indexOf(catName)}
+                    totalItems={getUniqueCategories().length}
+                    onOrderChange={handleCategoryTierShift}
+                  />
+                ))}
+              </div>
+            )}
+            {/* 🔥 UPDATED BLOCK END */}
+
+          </div>
+
+          {/* 🏷️ Existing Category filter tabs layout row */}
           <div className="flex flex-wrap gap-2 mb-3">
             {dynamicCategories.map((category) => {
               const isAll = category === 'All';
@@ -347,8 +390,8 @@ export default function RoomManager() {
                         onClick={e => e.stopPropagation()}
                         // conditionally apply text and border colors based on isActive
                         className={`bg-transparent focus:outline-none border-b w-20 transition-colors ${isActive
-                            ? 'border-white/60 focus:border-white text-white placeholder-white/60'
-                            : 'border-[#cccccc] focus:border-[#0b9e7a] text-[#111111] placeholder-[#aaaaaa]'
+                          ? 'border-white/60 focus:border-white text-white placeholder-white/60'
+                          : 'border-[#cccccc] focus:border-[#0b9e7a] text-[#111111] placeholder-[#aaaaaa]'
                           }`}
                       />
                     ) : (
@@ -433,7 +476,7 @@ export default function RoomManager() {
             </div>
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 md:gap-5">
-              {filteredRooms.map((room) => (
+              {filteredRooms.map((room, index) => ( // 👈 Yahan '=> (' lagana zaroori tha
                 <div
                   key={room._id}
                   onClick={() => openRoomDetail(room._id)}
@@ -446,6 +489,14 @@ export default function RoomManager() {
                       className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                     />
 
+                    {/* 🔢 POSITION INPUT COMPONENT PLACED SAFELY HERE */}
+                    <PositionInput
+                      roomId={room._id}
+                      currentIndex={index}
+                      totalItems={filteredRooms.length}
+                      onPositionChange={handleManualPositionChange}
+                    />
+
                     <div className="absolute top-2.5 left-2.5" onClick={(e) => e.stopPropagation()}>
                       <LiveToggle
                         isLive={room.isLive}
@@ -453,6 +504,7 @@ export default function RoomManager() {
                         onToggle={(e) => handleToggleLive(e, room._id)}
                       />
                     </div>
+
 
                     {room.maskUrl && (
                       <span className="absolute top-2.5 right-2.5 text-[10px] font-semibold bg-white text-[#0b9e7a] border border-[#0b9e7a] px-2 py-0.5 rounded-full shadow-sm">
