@@ -69,7 +69,7 @@ export function useRoomSort(rooms, setRooms, filteredRooms, fetchRoomsData) {
     setIsSorting(true);
 
     try {
-      const response = await fetch('http://localhost:8000/rooms/reorder', {
+      const response = await fetch('https://wonderfloor-dashboard.vercel.app/rooms/reorder', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ orderedIds: fullOrder }),
