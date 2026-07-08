@@ -218,17 +218,8 @@ const handleVisibilityChange = (id, newVisible) =>
   });
 
   // ─── SWAP OUT THE ORDERING PIPELINE WITH THE SAFEGUARD ───
-  let orderedProducts = [];
-  try {
-    orderedProducts = getOrderedProducts(sortedFilteredProducts);
-    // Double check that the hook actually returned a valid array
-    if (!Array.isArray(orderedProducts)) {
-      orderedProducts = sortedFilteredProducts;
-    }
-  } catch (err) {
-    console.error("useDragToSwap failed to sort products:", err);
-    orderedProducts = sortedFilteredProducts; // Fallback so the dashboard doesn't go white
-  }
+// ✅ Ab DB 'order' field hi source of truth hai — drag-order wrapper skip kiya
+  const orderedProducts = sortedFilteredProducts;
 
   const isStageTwo = activeType === 'All' || selectedCollection;
 
