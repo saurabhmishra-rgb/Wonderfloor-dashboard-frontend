@@ -817,7 +817,7 @@ const handleVisibilityChange = (id, newVisible) =>
 //   { label: 'Settings', icon: 'settings', key: 'settings', path: '/admin/settings', group: null },
 // ];
 
-// const BASE_URL = import.meta.env.VITE_NODE_BACKEND_URL || 'http://localhost:8000';
+// const BASE_URL = import.meta.env.VITE_NODE_BACKEND_URL || 'https://wonderfloor-dashboard.vercel.app';
 
 // export default function ProductManager() {
 //   const { searchQuery, setSearchQuery } = useSearch();
