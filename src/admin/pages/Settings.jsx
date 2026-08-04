@@ -11,6 +11,11 @@ const Icon = {
   menu:     <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>,
   close:    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>,
    logout: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>,
+  leads: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
+  <rect x="3" y="5" width="18" height="14" rx="2" />
+  <circle cx="9" cy="10" r="2" />
+  <path d="M15 9h3M15 13h3M6.5 16c.5-1.5 1.7-2.3 2.5-2.3s2 .8 2.5 2.3" />
+</svg>,
 };
 
 const navItems = [
@@ -18,7 +23,7 @@ const navItems = [
   { label: 'Demo Rooms',   icon: 'photo',    key: 'rooms',    path: '/admin/rooms',    group: 'MANAGE' },
   { label: 'Flooring Products', icon: 'stack',    key: 'products', path: '/admin/products', group: null },
   // { label: 'Admin users',   icon: 'users',    key: 'users',    path: '/admin/sidebar',  group: 'SETTINGS' },
-  { label: 'Settings',      icon: 'settings', key: 'settings', path: '/admin/settings', group: null },
+  { label: 'Leads',      icon: 'leads', key: 'settings', path: '/admin/settings', group: null },
 ];
 
 export default function Settings() {
