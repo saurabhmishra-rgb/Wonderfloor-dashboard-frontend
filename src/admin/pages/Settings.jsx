@@ -135,11 +135,12 @@ export default function Settings() {
           
           <div className="text-center max-w-sm py-16 px-6 border-2 border-dashed border-[#e0e0e0] rounded-2xl bg-white shadow-sm">
             <div className="w-12 h-12 rounded-full bg-slate-50 border border-slate-100 flex items-center justify-center mx-auto mb-4 text-[#aaaaaa]">
-              {Icon.settings}
+              {Icon.leads}
             </div>
             <p className="text-sm font-semibold text-[#333333]">System Config Matrix</p>
             <p className="text-xs text-[#aaaaaa] mt-1 leading-relaxed">
-              Global visualizer fallbacks, processing pipelines, and deployment keys will be managed directly from this console workspace area.
+              Leads will be visible soon...<br/>
+              No data available right now
             </p>
           </div>
 
