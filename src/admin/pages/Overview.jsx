@@ -35,7 +35,7 @@ export default function Overview() {
   const [isTileModalOpen, setIsTileModalOpen] = useState(false);
   const [isAdminSidebar, setIsAdminSidebar] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const [viewMode, setViewMode] = useState('list');
+  const [viewMode, setViewMode] = useState('grid');
 
   // ── Pagination states ──
   const [loading, setLoading] = useState(true);
@@ -43,7 +43,7 @@ export default function Overview() {
   const [uploadLimit, setUploadLimit] = useState(ITEMS_PER_PAGE);
   const [hasMore, setHasMore] = useState(true);
 
- const [dashboardData, setDashboardData] = useState({
+  const [dashboardData, setDashboardData] = useState({
     stats: { totalRooms: 0, totalProducts: 0, totalRecords: 0 },
     recentUploads: [],
   });
@@ -60,7 +60,7 @@ export default function Overview() {
   async function fetchDashboardStats(limit = ITEMS_PER_PAGE, isLoadMore = false) {
     isLoadMore ? setLoadingMore(true) : setLoading(true);
     try {
-      const response = await fetch(`https://wonderfloor-dashboard.vercel.app/dashboard-stats?limit=${limit}`);
+      const response = await fetch(`http://localhost:8000/dashboard-stats?limit=${limit}`);
       if (response.ok) {
         const data = await response.json();
         setDashboardData(data);
@@ -80,7 +80,7 @@ export default function Overview() {
     fetchDashboardStats(newLimit, true);
   }
 
-useEffect(() => {
+  useEffect(() => {
     fetchDashboardStats(uploadLimit);
   }, []);
 
@@ -302,13 +302,13 @@ useEffect(() => {
               <div className="p-8 text-center text-[#aaaaaa] text-sm">No recent uploads found.</div>
             )}
 
-            {/* ── LIST VIEW ── */}
+         {/* ── LIST VIEW ── */}
             {viewMode === 'list' && (
               <div className="w-full overflow-x-auto">
                 <div className="min-w-[700px]">
                   {/* Table header */}
-                  <div className="grid grid-cols-[2fr_2fr_80px_160px_100px] px-5 py-2.5 border-b border-[#f0f0f0] bg-[#fafafa]">
-                    {['Image', 'Filename', 'Type', 'Category', 'Status'].map(h => (
+                  <div className="grid grid-cols-[minmax(0,1fr)_140px_160px_100px] gap-4 px-5 py-2.5 border-b border-[#f0f0f0] bg-[#fafafa]">
+                    {['Image', 'Type', 'Category', 'Status'].map(h => (
                       <div key={h} className="text-xs text-[#aaaaaa] font-medium">{h}</div>
                     ))}
                   </div>
@@ -318,14 +318,13 @@ useEffect(() => {
                     Array.from({ length: ITEMS_PER_PAGE }).map((_, idx) => (
                       <div
                         key={idx}
-                        className="grid grid-cols-[2fr_2fr_80px_160px_100px] px-5 py-3.5 items-center border-b border-[#f0f0f0] animate-pulse"
+                        className="grid grid-cols-[minmax(0,1fr)_140px_160px_100px] gap-4 px-5 py-3.5 items-center border-b border-[#f0f0f0] animate-pulse"
                       >
                         <div className="flex items-center gap-2.5">
                           <div className="w-9 h-9 rounded-md bg-gray-200 shrink-0" />
                           <div className="h-3.5 bg-gray-200 rounded w-28" />
                         </div>
-                        <div className="h-3 bg-gray-100 rounded w-36" />
-                        <div className="h-3.5 bg-gray-200 rounded w-10" />
+                        <div className="h-3.5 bg-gray-200 rounded w-full max-w-[80px]" />
                         <div className="h-5 bg-gray-200 rounded-full w-24" />
                         <div className="h-5 bg-gray-200 rounded-full w-16" />
                       </div>
@@ -340,7 +339,7 @@ useEffect(() => {
                       return (
                         <div
                           key={row.id}
-                          className={`grid grid-cols-[2fr_2fr_80px_160px_100px] px-5 py-3 items-center transition-colors duration-100 hover:bg-[#fafafa] cursor-default ${!isLast ? 'border-b border-[#f0f0f0]' : ''}`}
+                          className={`grid grid-cols-[minmax(0,1fr)_140px_160px_100px] gap-4 px-5 py-3 items-center transition-colors duration-100 hover:bg-[#fafafa] cursor-default ${!isLast ? 'border-b border-[#f0f0f0]' : ''}`}
                         >
                           <div className="flex items-center gap-2.5 overflow-hidden">
                             <div className="w-9 h-9 rounded-md shrink-0 border border-[#e8e8e8] overflow-hidden bg-[#f5f5f5]">
@@ -348,8 +347,7 @@ useEffect(() => {
                             </div>
                             <span className="text-[13px] text-[#222222] font-medium truncate pr-2">{row.name}</span>
                           </div>
-                          <div className="text-xs text-[#aaaaaa] font-mono truncate pr-4" title={row.file}>{row.file}</div>
-                          <div className="text-[13px] text-[#666666]">{TYPE_LABEL[row.type] ?? row.type}</div>
+                          <div className="text-[13px] text-[#666666] truncate">{TYPE_LABEL[row.type] ?? row.type}</div>
                           <div>
                             <span className={`inline-block px-2.5 py-1 rounded-full text-[11px] font-medium truncate max-w-[140px] ${typeColor}`}>
                               {row.category}
@@ -379,7 +377,6 @@ useEffect(() => {
                     >
                       <div className="w-full aspect-video rounded-lg bg-gray-200 mb-3" />
                       <div className="h-4 bg-gray-200 rounded w-2/3 mb-2" />
-                      <div className="h-3 bg-gray-100 rounded w-1/2 mb-4" />
                       <div className="mt-auto flex items-center justify-between pt-3 border-t border-[#f0f0f0]">
                         <div className="h-4 bg-gray-200 rounded-full w-16" />
                         <div className="h-4 bg-gray-200 rounded-full w-12" />
@@ -400,8 +397,7 @@ useEffect(() => {
                             {TYPE_LABEL[row.type] ?? row.type}
                           </span>
                         </div>
-                        <span className="text-[14px] text-[#111111] font-semibold truncate mb-1" title={row.name}>{row.name}</span>
-                        <span className="text-[11px] text-[#aaaaaa] font-mono truncate mb-3" title={row.file}>{row.file}</span>
+                        <span className="text-[14px] text-[#111111] font-semibold truncate mb-3" title={row.name}>{row.name}</span>
                         <div className="mt-auto flex items-center justify-between pt-3 border-t border-[#f0f0f0]">
                           <span className={`inline-block px-2 py-1 rounded-full text-[10px] font-medium truncate max-w-[100px] ${typeColor}`}>
                             {row.category}
