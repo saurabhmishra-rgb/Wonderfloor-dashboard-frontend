@@ -57,18 +57,24 @@ export default function Overview() {
   const activePage = navItems.find(item => item.path === location.pathname)?.key || 'overview';
 
   // ── Fetch with limit ──
+  const [fetchError, setFetchError] = useState(null);
+
   async function fetchDashboardStats(limit = ITEMS_PER_PAGE, isLoadMore = false) {
     isLoadMore ? setLoadingMore(true) : setLoading(true);
+    setFetchError(null);
     try {
       const response = await fetch(`http://localhost:8000/dashboard-stats?limit=${limit}`);
       if (response.ok) {
         const data = await response.json();
         setDashboardData(data);
-        // If the API returned fewer items than requested, there's nothing more to load
         setHasMore(data.recentUploads.length === limit);
+      } else {
+        console.error('Dashboard stats fetch failed with status:', response.status);
+        setFetchError(`Server error (${response.status}). Try refreshing.`);
       }
     } catch (error) {
       console.error('Failed to fetch dashboard stats', error);
+      setFetchError('Network error — is the backend running?');
     } finally {
       isLoadMore ? setLoadingMore(false) : setLoading(false);
     }
@@ -222,7 +228,7 @@ export default function Overview() {
         </header>
 
         {/* Scrollable content */}
-       <div ref={scrollContainerRef} className="flex-1 overflow-auto p-4 md:p-6 md:px-7">
+        <div ref={scrollContainerRef} className="flex-1 overflow-auto p-4 md:p-6 md:px-7">
 
           {/* ── METRIC CARDS ── */}
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3.5 mb-7">
@@ -299,10 +305,16 @@ export default function Overview() {
 
             {/* Empty state */}
             {dashboardData.recentUploads.length === 0 && !loading && (
-              <div className="p-8 text-center text-[#aaaaaa] text-sm">No recent uploads found.</div>
+              <div className="p-8 text-center text-sm">
+                {fetchError ? (
+                  <span className="text-red-500">⚠️ {fetchError}</span>
+                ) : (
+                  <span className="text-[#aaaaaa]">No recent uploads found.</span>
+                )}
+              </div>
             )}
 
-         {/* ── LIST VIEW ── */}
+            {/* ── LIST VIEW ── */}
             {viewMode === 'list' && (
               <div className="w-full overflow-x-auto">
                 <div className="min-w-[700px]">
