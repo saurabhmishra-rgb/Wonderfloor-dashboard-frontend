@@ -63,7 +63,8 @@ export default function Overview() {
     isLoadMore ? setLoadingMore(true) : setLoading(true);
     setFetchError(null);
     try {
-      const response = await fetch(`http://localhost:8000/dashboard-stats?limit=${limit}`);
+     const API_BASE = import.meta.env.VITE_API_URL || 'https://wonderfloor-dashboard.vercel.app';
+const response = await fetch(`${API_BASE}/dashboard-stats?limit=${limit}`);
       if (response.ok) {
         const data = await response.json();
         setDashboardData(data);
