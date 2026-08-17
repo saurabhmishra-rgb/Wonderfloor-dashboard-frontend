@@ -1,23 +1,20 @@
 // ProductManager.jsx
 import { useState, useEffect } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import UploadTileModal from '../components/UploadTileModal';
 import BulkUploadModal from '../components/BulkUploadTile';
 import ProductDetailModal from './ProductDetailModal';
 import VisibilityToggle from '../components/VisibilityToggle';
 import DeleteProductModal from '../components/DeleteProductModal';
-import { useSearch } from '../components/SearchContext'; // <-- Import the search context hook
-import { useDragToSwap } from '../../hooks/useDragToSwap'; // Paste whatever it gives you!
+import { useSearch } from '../components/SearchContext'; 
+import { useDragToSwap } from '../../hooks/useDragToSwap'; 
+import Sidebar from '../components/Sidebar';
 /* ─── icons ──────────────────────────────────────────────────────── */
 const Icon = {
-  grid: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><rect x="3" y="3" width="7" height="7" /><rect x="14" y="3" width="7" height="7" /><rect x="14" y="14" width="7" height="7" /><rect x="3" y="14" width="7" height="7" /></svg>,
-  photo: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><rect x="3" y="3" width="18" height="18" rx="2" /><circle cx="8.5" cy="8.5" r="1.5" /><polyline points="21 15 16 10 5 21" /></svg>,
-  stack: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><polygon points="12 2 2 7 12 12 22 7 12 2" /><polyline points="2 17 12 22 22 17" /><polyline points="2 12 12 17 22 12" /></svg>,
   users: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /><path d="M23 21v-2a4 4 0 0 0-3-3.87" /><path d="M16 3.13a4 4 0 0 1 0 7.75" /></svg>,
   settings: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><circle cx="12" cy="12" r="3" /><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" /></svg>,
   plus: <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" /></svg>,
   menu: <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="3" y1="12" x2="21" y2="12" /><line x1="3" y1="6" x2="21" y2="6" /><line x1="3" y1="18" x2="21" y2="18" /></svg>,
-  close: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>,
   listView: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2"><line x1="8" y1="6" x2="21" y2="6" /><line x1="8" y1="12" x2="21" y2="12" /><line x1="8" y1="18" x2="21" y2="18" /><line x1="3" y1="6" x2="3.01" y2="6" /><line x1="3" y1="12" x2="3.01" y2="12" /><line x1="3" y1="18" x2="3.01" y2="18" /></svg>,
   gridView: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2"><rect x="3" y="3" width="7" height="7" rx="1" /><rect x="14" y="3" width="7" height="7" rx="1" /><rect x="14" y="14" width="7" height="7" rx="1" /><rect x="3" y="14" width="7" height="7" rx="1" /></svg>,
   edit: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" /><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" /></svg>,
@@ -31,12 +28,7 @@ const Icon = {
 </svg>,
 };
 
-const navItems = [
-  { label: 'Dashboard Overview', icon: 'grid', key: 'overview', path: '/admin', group: null },
-  { label: 'Demo Rooms', icon: 'photo', key: 'rooms', path: '/admin/rooms', group: 'MANAGE' },
-  { label: 'Flooring Products', icon: 'stack', key: 'products', path: '/admin/products', group: null },
-  { label: 'Leads', icon: 'leads', key: 'settings', path: '/admin/settings', group: null },
-];
+
 
 const BASE_URL = import.meta.env.VITE_NODE_BACKEND_URL || 'https://wonderfloor-dashboard.vercel.app';
 
@@ -124,8 +116,6 @@ async function handleSaveProductOrder() {
 }
 
   const navigate = useNavigate();
-  const location = useLocation();
-  const activePage = navItems.find(item => item.path === location.pathname)?.key || 'products';
   const types = [
     { label: 'All Products', value: 'All' },
     { label: 'View by Collection- General', value: 'Flooring Products' },
@@ -223,8 +213,17 @@ const handleVisibilityChange = (id, newVisible) =>
   });
 
   // ─── SWAP OUT THE ORDERING PIPELINE WITH THE SAFEGUARD ───
-// ✅ Ab DB 'order' field hi source of truth hai — drag-order wrapper skip kiya
-  const orderedProducts = sortedFilteredProducts;
+  let orderedProducts = [];
+  try {
+    orderedProducts = getOrderedProducts(sortedFilteredProducts);
+    // Double check that the hook actually returned a valid array
+    if (!Array.isArray(orderedProducts)) {
+      orderedProducts = sortedFilteredProducts;
+    }
+  } catch (err) {
+    console.error("useDragToSwap failed to sort products:", err);
+    orderedProducts = sortedFilteredProducts; // Fallback so the dashboard doesn't go white
+  }
 
   const isStageTwo = activeType === 'All' || selectedCollection;
 
@@ -242,76 +241,10 @@ const handleVisibilityChange = (id, newVisible) =>
         />
       )}
 
-      {/* ── sidebar ── */}
-      <aside className={`
-        fixed top-0 left-0 h-full w-[220px] bg-white border-r border-[#e8e8e8]
-        flex flex-col z-50 transition-transform duration-300 ease-in-out
-        ${isMobileSidebarOpen ? 'translate-x-0' : '-translate-x-full'}
-        md:relative md:translate-x-0 md:shrink-0
-      `}>
-        <div className="px-5 pt-5 pb-[18px] border-b border-[#e8e8e8] flex justify-between items-center">
-          <div>
-            <div className="text-[17px] font-semibold text-[#111111] tracking-tight"> 
-              <img
-                src="https://www.wonderfloor.co.in/assets/img/logo/logo.png"
-                alt="Logo"
-                className="h-8 max-w-[150px] md:max-w-[180px] object-contain"
-              />
-            </div>
-          </div>
-          <button
-            onClick={() => setIsMobileSidebarOpen(false)}
-            className="md:hidden text-[#aaaaaa] hover:text-[#111]"
-          >
-            {Icon.close}
-          </button>
-        </div>
-
-        <nav className="flex-1 py-3 overflow-y-auto">
-          {navItems.map((item, i) => {
-            const isActive = activePage === item.key;
-            const showGroup = item.group && item.group !== navItems[i - 1]?.group;
-            return (
-              <div key={item.key}>
-                {showGroup && (
-                  <div className="text-[10px] font-semibold tracking-[0.08em] text-[#bbbbbb] px-5 pt-3.5 pb-1.5 uppercase">
-                    {item.group}
-                  </div>
-                )}
-                <button
-                  onClick={() => { navigate(item.path); setIsMobileSidebarOpen(false); }}
-                  className={`
-                    flex items-center gap-2.5 w-full px-5 py-[9px] border-l-2
-                    text-[13px] text-left transition-all duration-150 cursor-pointer group
-                    ${isActive
-                      ? 'bg-[#edf9f5] border-[#0b9e7a] text-[#0b9e7a] font-medium'
-                      : 'bg-transparent border-transparent text-[#888888] font-normal hover:text-[#333333] hover:bg-[#f5f5f5]'}
-                  `}
-                >
-                  <span className={`transition-opacity ${isActive ? 'opacity-100' : 'opacity-60 group-hover:opacity-90'}`}>
-                    {Icon[item.icon]}
-                  </span>
-                  {item.label}
-                </button>
-              </div>
-            );
-          })}
-        </nav>
-
-        <div className="px-5 pt-3.5 pb-[18px] border-t border-[#e8e8e8] flex justify-between items-center">
-          <div>
-            <div className="text-[11px] text-[#aaaaaa]">Logged in as</div>
-            <div className="text-[13px] font-medium text-[#333333] mt-0.5">Admin</div>
-          </div>
-          <button
-            onClick={() => navigate('/admin/logout')}
-            className="text-[#888888] hover:text-red-500 transition-colors p-2 rounded-md hover:bg-red-50 cursor-pointer"
-            title="Log Out"
-          >
-            {Icon.logout}
-          </button>
-        </div>
-      </aside>
+    <Sidebar
+  isMobileOpen={isMobileSidebarOpen}
+  onCloseMobile={() => setIsMobileSidebarOpen(false)}
+/>
 
       {/* ── main content ── */}
       <main className="flex-1 flex flex-col overflow-hidden min-w-0">
@@ -813,7 +746,7 @@ const handleVisibilityChange = (id, newVisible) =>
 //   { label: 'Settings', icon: 'settings', key: 'settings', path: '/admin/settings', group: null },
 // ];
 
-// const BASE_URL = import.meta.env.VITE_NODE_BACKEND_URL || 'https://wonderfloor-dashboard.vercel.app';
+// const BASE_URL = import.meta.env.VITE_NODE_BACKEND_URL || 'http://localhost:8000';
 
 // export default function ProductManager() {
 //   const { searchQuery, setSearchQuery } = useSearch();
