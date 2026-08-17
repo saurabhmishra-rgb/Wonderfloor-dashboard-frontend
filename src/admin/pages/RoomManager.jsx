@@ -1,6 +1,6 @@
 // RoomManager.jsx
 import { useState, useEffect } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import UploadRoomModal from '../components/UploadRoomModal';
 import BulkUploadRoomModal from '../components/BulkUploadRoomModal';
 import RoomDetail from './RoomDetail';
@@ -13,35 +13,23 @@ import { useCategorySort } from '../../hooks/useRoomCategorySort';
 import PositionInput from '../components/RoomPositionInput';
 import CategoryPositionInput from '../components/CategoryPositionInput';
 import RoomSortPanel from '../components/RoomSortPanel';
-
+import Sidebar from '../components/Sidebar';
 
 
 const Icon = {
-  grid: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><rect x="3" y="3" width="7" height="7" /><rect x="14" y="3" width="7" height="7" /><rect x="14" y="14" width="7" height="7" /><rect x="3" y="14" width="7" height="7" /></svg>,
-  photo: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><rect x="3" y="3" width="18" height="18" rx="2" /><circle cx="8.5" cy="8.5" r="1.5" /><polyline points="21 15 16 10 5 21" /></svg>,
-  stack: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><polygon points="12 2 2 7 12 12 22 7 12 2" /><polyline points="2 17 12 22 22 17" /><polyline points="2 12 12 17 22 12" /></svg>,
   users: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /><path d="M23 21v-2a4 4 0 0 0-3-3.87" /><path d="M16 3.13a4 4 0 0 1 0 7.75" /></svg>,
   settings: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><circle cx="12" cy="12" r="3" /><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" /></svg>,
   upload: <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="17 8 12 3 7 8" /><line x1="12" y1="3" x2="12" y2="15" /></svg>,
   menu: <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="3" y1="6" x2="21" y2="6" /><line x1="3" y1="12" x2="21" y2="12" /><line x1="3" y1="18" x2="21" y2="18" /></svg>,
-  close: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>,
   edit: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" /><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" /></svg>,
   trash: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="3 6 5 6 21 6" /><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" /><line x1="10" y1="11" x2="10" y2="17" /><line x1="14" y1="11" x2="14" y2="17" /></svg>,
   logout: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" /><polyline points="16 17 21 12 16 7" /><line x1="21" y1="12" x2="9" y2="12" /></svg>,
   leads: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
-  <rect x="3" y="5" width="18" height="14" rx="2" />
-  <circle cx="9" cy="10" r="2" />
-  <path d="M15 9h3M15 13h3M6.5 16c.5-1.5 1.7-2.3 2.5-2.3s2 .8 2.5 2.3" />
-</svg>,
+    <rect x="3" y="5" width="18" height="14" rx="2" />
+    <circle cx="9" cy="10" r="2" />
+    <path d="M15 9h3M15 13h3M6.5 16c.5-1.5 1.7-2.3 2.5-2.3s2 .8 2.5 2.3" />
+  </svg>,
 };
-
-const navItems = [
-  { label: ' Dashboard Overview', icon: 'grid', key: 'overview', path: '/admin', group: null },
-  { label: 'Demo Rooms', icon: 'photo', key: 'rooms', path: '/admin/rooms', group: 'MANAGE' },
-  { label: 'Flooring Products', icon: 'stack', key: 'products', path: '/admin/products', group: null },
-  // { label: 'Admin users', icon: 'users', key: 'users', path: '/admin/sidebar', group: 'SETTINGS' },
-  { label: 'Leads', icon: 'leads', key: 'settings', path: '/admin/settings', group: null },
-];
 
 function LiveToggle({ isLive, onToggle, loading }) {
   return (
@@ -80,13 +68,11 @@ export default function RoomManager() {
   const [editingCategoryValue, setEditingCategoryValue] = useState('');
 
   const navigate = useNavigate();
-  const location = useLocation();
-  const activePage = navItems.find(item => item.path === location.pathname)?.key || 'rooms';
 
   async function fetchRoomsData() {
     setLoading(true);
     try {
-      const response = await fetch('https://wonderfloor-dashboard.vercel.app/rooms');
+      const response = await fetch('https://wonderfloor-dashboard.vercel.app');
       if (!response.ok) throw new Error('Failed to fetch data');
       const data = await response.json();
 
@@ -113,7 +99,7 @@ export default function RoomManager() {
     const catRooms = rooms.filter(r => r.category === oldFullCat);
     await Promise.all(
       catRooms.map(r =>
-        fetch(`https://wonderfloor-dashboard.vercel.app/rooms/${r._id}`, {
+        fetch(`https://wonderfloor-dashboard.vercel.app/${r._id}`, {
           method: 'PATCH',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ category: trimmed }),
@@ -130,7 +116,7 @@ export default function RoomManager() {
     e.stopPropagation();
     setTogglingId(roomId);
     try {
-      const res = await fetch(`https://wonderfloor-dashboard.vercel.app/rooms/${roomId}/toggle-live`, {
+      const res = await fetch(`https://wonderfloor-dashboard.vercel.app/${roomId}/toggle-live`, {
         method: 'PATCH',
       });
       if (!res.ok) throw new Error('Toggle failed');
@@ -230,72 +216,6 @@ export default function RoomManager() {
     const catRooms = rooms.filter(r => r.category && r.category.includes(cat));
     return catRooms.some(r => r.isLive) && !catRooms.every(r => r.isLive);
   };
-
-  const SidebarContent = (
-    <>
-      <div className="px-5 pt-5 pb-[18px] border-b border-[#e8e8e8] flex items-center justify-between">
-        <div>
-          <div className="text-[17px] font-semibold text-[#111111] tracking-tight"> <img
-            src="https://www.wonderfloor.co.in/assets/img/logo/logo.png"
-            alt="Logo"
-            className="h-8 max-w-[150px] md:max-w-[180px] object-contain"
-          /></div>
-          {/* <div className="text-xs text-[#aaaaaa] mt-0.5">Admin panel</div> */}
-        </div>
-        <button
-          onClick={() => setIsMobileSidebarOpen(false)}
-          className="md:hidden p-1.5 rounded-lg text-[#aaaaaa] hover:text-[#333] hover:bg-[#f5f5f5] transition-colors cursor-pointer"
-        >
-          {Icon.close}
-        </button>
-      </div>
-
-      <nav className="flex-1 py-3">
-        {navItems.map((item, i) => {
-          const isActive = activePage === item.key;
-          const showGroup = item.group && item.group !== navItems[i - 1]?.group;
-          return (
-            <div key={item.key}>
-              {showGroup && (
-                <div className="text-[10px] font-semibold tracking-[0.08em] text-[#bbbbbb] px-5 pt-3.5 pb-1.5 uppercase">
-                  {item.group}
-                </div>
-              )}
-              <button
-                onClick={() => { navigate(item.path); setIsMobileSidebarOpen(false); }}
-                className={`flex items-center gap-2.5 w-full px-5 py-[9px] border-l-2 text-[13px] text-left transition-all duration-150 cursor-pointer group ${isActive
-                  ? 'bg-[#edf9f5] border-[#0b9e7a] text-[#0b9e7a] font-medium'
-                  : 'bg-transparent border-transparent text-[#888888] font-normal hover:text-[#333333] hover:bg-[#f5f5f5]'
-                  }`}
-              >
-                <span className={`transition-opacity ${isActive ? 'opacity-100' : 'opacity-60 group-hover:opacity-90'}`}>
-                  {Icon[item.icon]}
-                </span>
-                {item.label}
-              </button>
-            </div>
-          );
-        })}
-      </nav>
-
-      <div className="px-5 pt-3.5 pb-[18px] border-t border-[#e8e8e8] flex justify-between items-center">
-        <div>
-          <div className="text-[11px] text-[#aaaaaa]">Logged in as</div>
-          <div className="text-[13px] font-medium text-[#333333] mt-0.5">Admin</div>
-        </div>
-
-        {/* 👇 YOUR LOGOUT BUTTON 👇 */}
-        <button
-          onClick={() => navigate('/admin/logout')}
-          className="text-[#888888] hover:text-red-500 transition-colors p-2 rounded-md hover:bg-red-50 cursor-pointer"
-          title="Log Out"
-        >
-          {Icon.logout}
-        </button>
-      </div>
-    </>
-  );
-
   return (
     <div className="flex h-screen w-full font-sans bg-[#f4f4f5] text-[#111111] overflow-hidden">
       {isMobileSidebarOpen && (
@@ -305,14 +225,10 @@ export default function RoomManager() {
         />
       )}
 
-      <aside className={`
-        fixed top-0 left-0 h-full w-[220px] bg-white border-r border-[#e8e8e8] flex flex-col z-50
-        transition-transform duration-300 ease-in-out
-        ${isMobileSidebarOpen ? 'translate-x-0' : '-translate-x-full'}
-        md:relative md:translate-x-0 md:shrink-0
-      `}>
-        {SidebarContent}
-      </aside>
+      <Sidebar
+        isMobileOpen={isMobileSidebarOpen}
+        onCloseMobile={() => setIsMobileSidebarOpen(false)}
+      />
 
       <main className="flex-1 flex flex-col overflow-hidden min-w-0">
         <header className="h-[58px] border-b border-[#e8e8e8] flex items-center justify-between px-4 md:px-7 shrink-0 bg-white gap-3">
@@ -519,8 +435,8 @@ export default function RoomManager() {
                   key={room._id}
                   onClick={() => selectMode ? toggleRoomSelect(room._id) : openRoomDetail(room._id)}
                   className={`bg-white border rounded-xl overflow-hidden flex flex-col group shadow-sm transition-all duration-200 cursor-pointer ${selectMode && selectedIds.includes(room._id)
-                      ? 'border-[#0b9e7a] ring-2 ring-[#0b9e7a]/30'
-                      : 'border-[#e8e8e8] hover:shadow-md hover:-translate-y-0.5 active:scale-[0.98]'
+                    ? 'border-[#0b9e7a] ring-2 ring-[#0b9e7a]/30'
+                    : 'border-[#e8e8e8] hover:shadow-md hover:-translate-y-0.5 active:scale-[0.98]'
                     }`}
                 >
                   <div className="h-40 md:h-44 w-full overflow-hidden bg-[#f5f5f5] relative">
@@ -662,17 +578,17 @@ export default function RoomManager() {
         </div>
       )}
 
-     {showSortPanel && (
-  <RoomSortPanel
-    rooms={selectedIds.map(id => filteredRooms.find(r => r._id === id)).filter(Boolean)}
-    onSave={handleSaveSelectedOrder}
-    onClose={() => {
-      setShowSortPanel(false);
-      setSelectMode(false);
-      setSelectedIds([]); // Set() ki jagah empty array
-    }}
-  />
-)}
+      {showSortPanel && (
+        <RoomSortPanel
+          rooms={selectedIds.map(id => filteredRooms.find(r => r._id === id)).filter(Boolean)}
+          onSave={handleSaveSelectedOrder}
+          onClose={() => {
+            setShowSortPanel(false);
+            setSelectMode(false);
+            setSelectedIds([]); // Set() ki jagah empty array
+          }}
+        />
+      )}
     </div>
   );
 }
