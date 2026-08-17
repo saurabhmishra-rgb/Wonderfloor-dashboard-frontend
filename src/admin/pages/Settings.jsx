@@ -16,6 +16,7 @@ const Icon = {
     <circle cx="9" cy="10" r="2" />
     <path d="M15 9h3M15 13h3M6.5 16c.5-1.5 1.7-2.3 2.5-2.3s2 .8 2.5 2.3" />
   </svg>,
+  search: <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" /></svg>,
 };
 
 const navItems = [
@@ -31,16 +32,22 @@ const NODE_BACKEND_URL = 'https://wonderfloor-dashboard.vercel.app';
 export default function Settings() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
-  //  NEW: Leads state
+  // Leads state
   const [leads, setLeads] = useState([]);
   const [isLoadingLeads, setIsLoadingLeads] = useState(true);
   const [leadsError, setLeadsError] = useState(null);
+
+  // NEW: Search state
+  const [searchTerm, setSearchTerm] = useState('');
+  // Download filter
+  const [dateFrom, setDateFrom] = useState("");
+  const [dateTo, setDateTo] = useState("");
 
   const navigate = useNavigate();
   const location = useLocation();
   const activePage = navItems.find(item => item.path === location.pathname)?.key || 'settings';
 
-  //  NEW: Fetch leads jab page load ho
+  // Fetch leads jab page load ho
   useEffect(() => {
     async function fetchLeads() {
       try {
@@ -61,28 +68,47 @@ export default function Settings() {
     fetchLeads();
   }, []);
 
-  // ✅ NEW: Status update karne ke liye (new → contacted → converted → closed)
-  const handleStatusChange = async (leadId, newStatus) => {
-    try {
-      const res = await fetch(`${NODE_BACKEND_URL}/leads/${leadId}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ status: newStatus }),
-      });
-      const data = await res.json();
-      if (data.success) {
-        setLeads(prev => prev.map(l => l._id === leadId ? { ...l, status: newStatus } : l));
-      }
-    } catch (err) {
-      console.error('Status update failed:', err);
-    }
-  };
+  // NEW: Filtered leads based on search term
+  const filteredLeads = leads.filter(lead => {
+    const term = searchTerm.toLowerCase().trim();
 
-  const statusColors = {
-    new: 'bg-[#edf9f5] text-[#0b9e7a]',
-    contacted: 'bg-blue-50 text-blue-600',
-    converted: 'bg-purple-50 text-purple-600',
-    closed: 'bg-gray-100 text-gray-500',
+    const matchesSearch = !term || (
+      lead.name?.toLowerCase().includes(term) ||
+      lead.phone?.toLowerCase().includes(term) ||
+      lead.email?.toLowerCase().includes(term) ||
+      lead.message?.toLowerCase().includes(term) ||
+      lead.productName?.toLowerCase().includes(term) ||
+      lead.downloadCount?.toString().includes(term)
+    );
+    const leadDate = new Date(lead.lastSeenAt || lead.createdAt);
+    const matchesFrom = !dateFrom || leadDate >= new Date(dateFrom);
+    const matchesTo = !dateTo || leadDate <= new Date(dateTo + 'T23:59:59');
+
+    return matchesSearch && matchesFrom && matchesTo;
+  });
+
+  // Download function
+  const downloadCSV = () => {
+    const headers = ['Name', 'Phone', 'Email', 'Message', 'Product', 'Downloads', 'Last Seen'];
+    const rows = filteredLeads.map(lead => [
+      lead.name,
+      lead.phone,
+      lead.email || '',
+      (lead.message || '').replace(/,/g, ';'), // commas hata di CSV break se bachne ke liye
+      lead.productName || '',
+      lead.downloadCount || 1,
+      new Date(lead.lastSeenAt || lead.createdAt).toLocaleString('en-IN'),
+    ]);
+
+    const csvContent = [headers, ...rows].map(row => row.join(',')).join('\n');
+    const blob = new Blob([csvContent], { type: 'text/csv' });
+    const url = URL.createObjectURL(blob);
+
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `leads_${Date.now()}.csv`;
+    link.click();
+    URL.revokeObjectURL(url);
   };
 
   return (
@@ -135,15 +161,15 @@ export default function Settings() {
                     setIsMobileMenuOpen(false);
                   }}
                   className={`flex items-center gap-2.5 w-full px-5 py-[9px] border-l-2 text-[13px] text-left transition-all duration-150 cursor-pointer group ${isActive
-                      ? 'bg-[#edf9f5] border-[#0b9e7a] text-[#0b9e7a] font-medium'
-                      : 'bg-transparent border-transparent text-[#888888] font-normal hover:text-[#333333] hover:bg-[#f5f5f5]'
+                    ? 'bg-[#edf9f5] border-[#0b9e7a] text-[#0b9e7a] font-medium'
+                    : 'bg-transparent border-transparent text-[#888888] font-normal hover:text-[#333333] hover:bg-[#f5f5f5]'
                     }`}
                 >
                   <span className={`transition-opacity ${isActive ? 'opacity-100' : 'opacity-60 group-hover:opacity-90'}`}>
                     {Icon[item.icon]}
                   </span>
                   {item.label}
-                  {/* ✅ NEW: Leads count badge sidebar mein */}
+                  {/* Leads count badge sidebar mein */}
                   {item.key === 'settings' && leads.length > 0 && (
                     <span className="ml-auto bg-[#f05c3f] text-white text-[10px] font-bold rounded-full w-5 h-5 flex items-center justify-center shrink-0">
                       {leads.length > 99 ? '99+' : leads.length}
@@ -174,19 +200,91 @@ export default function Settings() {
       <main className="flex-1 flex flex-col overflow-hidden w-full">
 
         {/* Top bar */}
-        <header className="h-[58px] border-b border-[#e8e8e8] flex items-center justify-between px-4 md:px-7 shrink-0 bg-white">
-          <div className="flex items-center gap-3">
-            <button
-              className="md:hidden text-[#111111] p-1 -ml-1 rounded-md hover:bg-gray-100"
-              onClick={() => setIsMobileMenuOpen(true)}
-            >
-              {Icon.menu}
-            </button>
-            <h1 className="text-base font-medium text-[#111111] m-0">Leads</h1>
-          </div>
-        </header>
+        <header className="border-b border-[#e8e8e8] shrink-0 bg-white">
+          {/* Title row */}
+          <div className="h-[58px] flex items-center justify-between px-4 md:px-7 gap-3">
+            <div className="flex items-center gap-3 shrink-0">
+              <button
+                className="md:hidden text-[#111111] p-1 -ml-1 rounded-md hover:bg-gray-100"
+                onClick={() => setIsMobileMenuOpen(true)}
+              >
+                {Icon.menu}
+              </button>
+              <h1 className="text-base font-medium text-[#111111] m-0">Leads</h1>
+            </div>
 
-        {/* ✅ NEW: Leads Table / Empty / Loading states */}
+            {/* Filter bar — DESKTOP ONLY, same row as title (red box wali jagah) */}
+            {!isLoadingLeads && !leadsError && leads.length > 0 && (
+              <div className="hidden md:flex items-center gap-2">
+                <input
+                  type="date"
+                  value={dateFrom}
+                  onChange={(e) => setDateFrom(e.target.value)}
+                  className="h-9 px-2 rounded-lg border border-[#e0e0e0] text-xs text-[#111111] focus:outline-none focus:ring-2 focus:ring-[#0b9e7a]/30"
+                />
+                <span className="text-xs text-[#aaaaaa]">to</span>
+                <input
+                  type="date"
+                  value={dateTo}
+                  onChange={(e) => setDateTo(e.target.value)}
+                  className="h-9 px-2 rounded-lg border border-[#e0e0e0] text-xs text-[#111111] focus:outline-none focus:ring-2 focus:ring-[#0b9e7a]/30"
+                />
+                <div className="relative w-[220px]">
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[#aaaaaa]">{Icon.search}</span>
+                  <input
+                    type="text"
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    placeholder="Search leads..."
+                    className="w-full h-9 pl-9 pr-3 rounded-lg border border-[#e0e0e0] text-sm text-[#111111] placeholder-[#aaaaaa] focus:outline-none focus:ring-2 focus:ring-[#0b9e7a]/30"
+                  />
+                </div>
+                <button
+                  onClick={downloadCSV}
+                  className="h-9 px-3 rounded-lg bg-[#0b9e7a] text-white text-xs font-semibold hover:bg-[#098c6c] transition-colors cursor-pointer whitespace-nowrap"
+                >
+                  Download CSV
+                </button>
+              </div>
+            )}
+          </div>
+
+          {/* Filter bar — MOBILE ONLY, apni alag row, wrap hoti hui */}
+          {!isLoadingLeads && !leadsError && leads.length > 0 && (
+            <div className="md:hidden flex flex-wrap items-center gap-2 px-4 py-3 border-t border-[#e8e8e8]">
+              <input
+                type="date"
+                value={dateFrom}
+                onChange={(e) => setDateFrom(e.target.value)}
+                className="h-9 px-2 rounded-lg border border-[#e0e0e0] text-xs text-[#111111] flex-1 min-w-[110px] focus:outline-none focus:ring-2 focus:ring-[#0b9e7a]/30"
+              />
+              <span className="text-xs text-[#aaaaaa]">to</span>
+              <input
+                type="date"
+                value={dateTo}
+                onChange={(e) => setDateTo(e.target.value)}
+                className="h-9 px-2 rounded-lg border border-[#e0e0e0] text-xs text-[#111111] flex-1 min-w-[110px] focus:outline-none focus:ring-2 focus:ring-[#0b9e7a]/30"
+              />
+              <div className="relative w-full order-3">
+                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[#aaaaaa]">{Icon.search}</span>
+                <input
+                  type="text"
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  placeholder="Search leads..."
+                  className="w-full h-9 pl-9 pr-3 rounded-lg border border-[#e0e0e0] text-sm text-[#111111] placeholder-[#aaaaaa] focus:outline-none focus:ring-2 focus:ring-[#0b9e7a]/30"
+                />
+              </div>
+              <button
+                onClick={downloadCSV}
+                className="h-9 px-3 rounded-lg bg-[#0b9e7a] text-white text-xs font-semibold hover:bg-[#098c6c] transition-colors cursor-pointer whitespace-nowrap ml-auto"
+              >
+                Download CSV
+              </button>
+            </div>
+          )}
+        </header>
+        {/* Leads Table / Empty / Loading / No-results states */}
         <div className="flex-1 overflow-auto p-4 md:p-6 md:px-7">
 
           {isLoadingLeads ? (
@@ -205,48 +303,54 @@ export default function Settings() {
                 </div>
                 <p className="text-sm font-semibold text-[#333333]">No leads yet</p>
                 <p className="text-xs text-[#aaaaaa] mt-1 leading-relaxed">
-                  Leads will appear here once someone<br/>downloads a design from the AR visualizer.
+                  Leads will appear here once someone<br />downloads a design from the AR visualizer.
                 </p>
               </div>
             </div>
+          ) : filteredLeads.length === 0 ? (
+            /* NEW: No search results state */
+            <div className="flex items-center justify-center h-full">
+              <p className="text-sm text-[#aaaaaa]">No leads match "{searchTerm}"</p>
+            </div>
           ) : (
-            <div className="bg-white rounded-xl border border-[#e8e8e8] overflow-hidden">
-              <table className="w-full text-sm text-left">
+            <div className="bg-white rounded-xl border border-[#e8e8e8] overflow-x-auto">
+              <table className="w-full text-sm text-left min-w-[700px]">
                 <thead className="bg-[#f9fafb] text-[#888888] text-xs uppercase">
                   <tr>
                     <th className="px-4 py-3">Name</th>
                     <th className="px-4 py-3">Phone</th>
                     <th className="px-4 py-3">Email</th>
-                    <th className="px-4 py-3">Product</th>
-                    <th className="px-4 py-3">Downloads</th>
+                    <th className="px-4 py-3">Message</th>
+                    <th className="px-4 py-3">Recent Download</th>
+                    <th className="px-4 py-3">Total Downloads</th>
                     <th className="px-4 py-3">Last Seen</th>
-                    <th className="px-4 py-3">Status</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {leads.map(lead => (
+                  {filteredLeads.map(lead => (
                     <tr key={lead._id} className="border-t border-[#f0f0f0] hover:bg-[#fafafa]">
                       <td className="px-4 py-3 font-medium text-[#111111]">{lead.name}</td>
                       <td className="px-4 py-3">{lead.phone}</td>
-                       <td className="px-4 py-3 text-[#0b9e7a]">{lead.email || '—'}</td>
+                      <td className="px-4 py-3 text-[#0b9e7a]">{lead.email || '—'}</td>
+                      <td
+                        className="px-4 py-3 text-[#666666] max-w-[220px] truncate"
+                        title={lead.message || ''}
+                      >
+                        {lead.message || '—'}
+                      </td>
                       <td className="px-4 py-3">{lead.productName || '—'}</td>
                       <td className="px-4 py-3">{lead.downloadCount || 1}</td>
                       <td className="px-4 py-3">
-                        {new Date(lead.lastSeenAt || lead.createdAt).toLocaleDateString('en-IN', {
-                          day: '2-digit', month: 'short', year: 'numeric'
-                        })}
-                      </td>
-                      <td className="px-4 py-3">
-                        <select
-                          value={lead.status}
-                          onChange={(e) => handleStatusChange(lead._id, e.target.value)}
-                          className={`px-2 py-1 rounded-full text-xs font-medium capitalize border-0 cursor-pointer outline-none ${statusColors[lead.status] || statusColors.new}`}
-                        >
-                          <option value="new">New</option>
-                          <option value="contacted">Contacted</option>
-                          <option value="converted">Converted</option>
-                          <option value="closed">Closed</option>
-                        </select>
+                        <div>
+                          {new Date(lead.lastSeenAt || lead.createdAt).toLocaleDateString('en-IN', {
+                            day: '2-digit', month: 'short', year: 'numeric'
+                          })}
+                        </div>
+                        <div className="text-xs text-[#aaaaaa]">
+                          {new Date(lead.lastSeenAt || lead.createdAt).toLocaleTimeString('en-IN', {
+                            hour: '2-digit', minute: '2-digit', hour12: true
+                          })}
+                        </div>
                       </td>
                     </tr>
                   ))}
