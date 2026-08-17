@@ -1,39 +1,29 @@
 // Overview.jsx
 import { useState, useEffect, useRef } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
+// import { useNavigate} from 'react-router-dom';
 import UploadRoomModal from '../components/UploadRoomModal';
 import UploadTileModal from '../components/UploadTileModal';
 import AdminSidebar from '../components/AdminSidebar';
-
+import Sidebar from '../components/Sidebar';
 const Icon = {
-  grid: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><rect x="3" y="3" width="7" height="7" /><rect x="14" y="3" width="7" height="7" /><rect x="14" y="14" width="7" height="7" /><rect x="3" y="14" width="7" height="7" /></svg>,
-  photo: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><rect x="3" y="3" width="18" height="18" rx="2" /><circle cx="8.5" cy="8.5" r="1.5" /><polyline points="21 15 16 10 5 21" /></svg>,
-  stack: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><polygon points="12 2 2 7 12 12 22 7 12 2" /><polyline points="2 17 12 22 22 17" /><polyline points="2 12 12 17 22 12" /></svg>,
+
   users: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /><path d="M23 21v-2a4 4 0 0 0-3-3.87" /><path d="M16 3.13a4 4 0 0 1 0 7.75" /></svg>,
   settings: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><circle cx="12" cy="12" r="3" /><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" /></svg>,
   upload: <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="17 8 12 3 7 8" /><line x1="12" y1="3" x2="12" y2="15" /></svg>,
   plus: <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" /></svg>,
   menu: <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>,
-  close: <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>,
   list_view: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="8" y1="6" x2="21" y2="6"></line><line x1="8" y1="12" x2="21" y2="12"></line><line x1="8" y1="18" x2="21" y2="18"></line><line x1="3" y1="6" x2="3.01" y2="6"></line><line x1="3" y1="12" x2="3.01" y2="12"></line><line x1="3" y1="18" x2="3.01" y2="18"></line></svg>,
   grid_view: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="14" y="14" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect></svg>,
   logout: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" /><polyline points="16 17 21 12 16 7" /><line x1="21" y1="12" x2="9" y2="12" /></svg>,
   leads: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
-  <rect x="3" y="5" width="18" height="14" rx="2" />
-  <circle cx="9" cy="10" r="2" />
-  <path d="M15 9h3M15 13h3M6.5 16c.5-1.5 1.7-2.3 2.5-2.3s2 .8 2.5 2.3" />
-</svg>,
+    <rect x="3" y="5" width="18" height="14" rx="2" />
+    <circle cx="9" cy="10" r="2" />
+    <path d="M15 9h3M15 13h3M6.5 16c.5-1.5 1.7-2.3 2.5-2.3s2 .8 2.5 2.3" />
+  </svg>,
 };
 
 const ITEMS_PER_PAGE = 20;
 
-const navItems = [
-  { label: 'Dashboard Overview', icon: 'grid', key: 'overview', path: '/admin', group: null },
-  { label: 'Demo Rooms', icon: 'photo', key: 'rooms', path: '/admin/rooms', group: 'MANAGE' },
-  { label: 'Flooring Products', icon: 'stack', key: 'products', path: '/admin/products', group: null },
-  // { label: 'Admin users',        icon: 'users',    key: 'users',    path: '/admin/sidebar',  group: 'SETTINGS' },
-  { label: 'Leads', icon: 'leads', key: 'settings', path: '/admin/settings', group: null },
-];
 
 export default function Overview() {
   const [isRoomModalOpen, setIsRoomModalOpen] = useState(false);
@@ -57,10 +47,6 @@ export default function Overview() {
   const scrollContainerRef = useRef(null);
   const loadMoreRef = useRef(null);
 
-  const navigate = useNavigate();
-  const location = useLocation();
-  const activePage = navItems.find(item => item.path === location.pathname)?.key || 'overview';
-
   // ── Fetch with limit ──
   const [fetchError, setFetchError] = useState(null);
 
@@ -68,8 +54,8 @@ export default function Overview() {
     isLoadMore ? setLoadingMore(true) : setLoading(true);
     setFetchError(null);
     try {
-     const API_BASE = import.meta.env.VITE_API_URL || 'https://wonderfloor-dashboard.vercel.app';
-const response = await fetch(`${API_BASE}/dashboard-stats?limit=${limit}`);
+      const API_BASE = import.meta.env.VITE_API_URL || 'https://wonderfloor-dashboard.vercel.app';
+      const response = await fetch(`${API_BASE}/dashboard-stats?limit=${limit}`);
       if (response.ok) {
         const data = await response.json();
         setDashboardData(data);
@@ -125,6 +111,7 @@ const response = await fetch(`${API_BASE}/dashboard-stats?limit=${limit}`);
     Room: 'Demo Rooms',
     Tile: 'Flooring Product',
   };
+
   return (
     <div className="flex h-screen w-full font-sans bg-[#f4f4f5] text-[#111111] overflow-hidden">
 
@@ -135,73 +122,10 @@ const response = await fetch(`${API_BASE}/dashboard-stats?limit=${limit}`);
           onClick={() => setIsMobileMenuOpen(false)}
         />
       )}
-
-      {/* ── SIDEBAR ── */}
-      <aside className={`
-        fixed md:relative z-50 h-full w-[220px] shrink-0 bg-white border-r border-[#e8e8e8] flex flex-col
-        transition-transform duration-300 ease-in-out
-        ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full'} md:translate-x-0
-      `}>
-        <div className="flex justify-between items-center px-5 pt-5 pb-[18px] border-b border-[#e8e8e8]">
-          <div>
-            <img
-              src="https://www.wonderfloor.co.in/assets/img/logo/logo.png"
-              alt="Logo"
-              className="h-8 max-w-[150px] md:max-w-[180px] object-contain"
-            />
-          </div>
-          <button className="md:hidden text-[#888888]" onClick={() => setIsMobileMenuOpen(false)}>
-            {Icon.close}
-          </button>
-        </div>
-
-        <nav className="flex-1 py-3 overflow-y-auto">
-          {navItems.map((item, i) => {
-            const isActive = activePage === item.key;
-            const showGroup = item.group && item.group !== navItems[i - 1]?.group;
-
-            return (
-              <div key={item.key}>
-                {showGroup && (
-                  <div className="text-[10px] font-semibold tracking-[0.08em] text-[#bbbbbb] px-5 pt-3.5 pb-1.5 uppercase">
-                    {item.group}
-                  </div>
-                )}
-                <button
-                  onClick={() => { navigate(item.path); setIsMobileMenuOpen(false); }}
-                  className={`flex items-center gap-2.5 w-full px-5 py-[9px] border-l-2 text-[13px] text-left transition-all duration-150 cursor-pointer group ${isActive
-                    ? 'bg-[#edf9f5] border-[#0b9e7a] text-[#0b9e7a] font-medium'
-                    : 'bg-transparent border-transparent text-[#888888] font-normal hover:text-[#333333] hover:bg-[#f5f5f5]'
-                    }`}
-                >
-                  <span className={`transition-opacity ${isActive ? 'opacity-100' : 'opacity-60 group-hover:opacity-90'}`}>
-                    {Icon[item.icon]}
-                  </span>
-                  {item.label}
-                </button>
-              </div>
-            );
-          })}
-        </nav>
-
-        <div className="px-5 pt-3.5 pb-[18px] border-t border-[#e8e8e8] flex justify-between items-center">
-          <div>
-            <div className="text-[11px] text-[#aaaaaa]">Logged in as</div>
-            <div className="text-[13px] font-medium text-[#333333] mt-0.5">Admin</div>
-          </div>
-
-          {/* 👇 YOUR LOGOUT BUTTON 👇 */}
-          <button
-            onClick={() => navigate('/admin/logout')}
-            className="text-[#888888] hover:text-red-500 transition-colors p-2 rounded-md hover:bg-red-50 cursor-pointer"
-            title="Log Out"
-          >
-            {Icon.logout}
-          </button>
-        </div>
-
-      </aside>
-
+ <Sidebar
+        isMobileOpen={isMobileMenuOpen}
+        onCloseMobile={() => setIsMobileMenuOpen(false)}
+      />
       {/* ── MAIN CONTENT ── */}
       <main className="flex-1 flex flex-col overflow-hidden w-full">
 
