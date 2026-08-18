@@ -30,7 +30,43 @@ export default function Settings() {
   // Date filter
   const [dateFrom, setDateFrom] = useState("");
   const [dateTo, setDateTo] = useState("");
+  // for pagination 
+  const [currentPage, setCurrentPage] = useState(1);
+  const LEADS_PER_PAGE = 100;
 
+  // Single lead delete
+  const handleDeleteLead = async (leadId, leadName) => {
+    if (!window.confirm(`Delete lead "${leadName}"? This cannot be undone.`)) return;
+    try {
+      const res = await fetch(`${NODE_BACKEND_URL}/leads/${leadId}`, { method: 'DELETE' });
+      const data = await res.json();
+      if (data.success) {
+        setLeads(prev => prev.filter(l => l._id !== leadId));
+      } else {
+        alert('Failed to delete lead.');
+      }
+    } catch (err) {
+      console.error('Delete failed:', err);
+      alert('Could not connect to server.');
+    }
+  };
+
+  // Delete all leads
+  const handleDeleteAll = async () => {
+    if (!window.confirm(`Delete ALL ${leads.length} leads? This cannot be undone.`)) return;
+    try {
+      const res = await fetch(`${NODE_BACKEND_URL}/leads`, { method: 'DELETE' });
+      const data = await res.json();
+      if (data.success) {
+        setLeads([]);
+      } else {
+        alert('Failed to delete leads.');
+      }
+    } catch (err) {
+      console.error('Delete all failed:', err);
+      alert('Could not connect to server.');
+    }
+  };
   // Fetch leads jab page load ho
   useEffect(() => {
     async function fetchLeads() {
@@ -71,6 +107,15 @@ export default function Settings() {
     return matchesSearch && matchesFrom && matchesTo;
   });
 
+  // Paginattion calculation 
+  const totalPages = Math.ceil(filteredLeads.length / LEADS_PER_PAGE);
+  const paginatedLeads = filteredLeads.slice(
+    (currentPage - 1) * LEADS_PER_PAGE,
+    currentPage * LEADS_PER_PAGE
+  );
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm, dateFrom, dateTo]);
   // Download CSV
   const downloadCSV = () => {
     const headers = ['Name', 'Phone', 'Email', 'Message', 'Product', 'Downloads', 'Last Seen'];
@@ -161,6 +206,12 @@ export default function Settings() {
                 >
                   Download CSV
                 </button>
+                <button
+                  onClick={handleDeleteAll}
+                  className="h-9 px-3 rounded-lg bg-white border border-red-300 text-red-500 text-xs font-semibold hover:bg-red-50 transition-colors cursor-pointer whitespace-nowrap"
+                >
+                  Delete All
+                </button>
               </div>
             )}
           </div>
@@ -240,10 +291,11 @@ export default function Settings() {
                     <th className="px-4 py-3">Recent Download</th>
                     <th className="px-4 py-3">Total Downloads</th>
                     <th className="px-4 py-3">Last Seen</th>
+                    <th className="px-4 py-3">Actions</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {filteredLeads.map(lead => (
+                  {paginatedLeads.map(lead => (
                     <tr key={lead._id} className="border-t border-[#f0f0f0] hover:bg-[#fafafa]">
                       <td className="px-4 py-3 font-medium text-[#111111]">{lead.name}</td>
                       <td className="px-4 py-3">{lead.phone}</td>
@@ -268,10 +320,83 @@ export default function Settings() {
                           })}
                         </div>
                       </td>
+                      <td className="px-4 py-3">
+                        <button
+                          onClick={() => handleDeleteLead(lead._id, lead.name)}
+                          className="text-red-400 hover:text-red-600 hover:bg-red-50 p-1.5 rounded-md transition-colors"
+                          title="Delete lead"
+                        >
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                            <polyline points="3 6 5 6 21 6" />
+                            <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+                          </svg>
+                        </button>
+                      </td>
                     </tr>
                   ))}
                 </tbody>
               </table>
+
+              {/* Pagination controls */}
+              {totalPages > 1 && (
+                <div className="flex flex-col sm:flex-row items-center justify-between gap-3 px-4 py-3 border-t border-[#e8e8e8] bg-[#f9fafb]">
+                  <span className="text-xs text-[#888888]">
+                    Showing {(currentPage - 1) * LEADS_PER_PAGE + 1}–{Math.min(currentPage * LEADS_PER_PAGE, filteredLeads.length)} of {filteredLeads.length}
+                  </span>
+                  <div className="flex items-center gap-1.5">
+                    <button
+                      onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                      disabled={currentPage === 1}
+                      className="px-3 py-1.5 rounded-lg border border-[#e0e0e0] text-xs font-medium text-[#555] disabled:opacity-40 disabled:cursor-not-allowed hover:bg-white transition-colors"
+                    >
+                      Previous
+                    </button>
+
+                    {/* Numbered page buttons with ellipsis */}
+                    {(() => {
+                      const pages = [];
+                      const delta = 1; // current page ke kitne aage-peeche numbers dikhane hain
+
+                      for (let i = 1; i <= totalPages; i++) {
+                        if (
+                          i === 1 ||
+                          i === totalPages ||
+                          (i >= currentPage - delta && i <= currentPage + delta)
+                        ) {
+                          pages.push(i);
+                        } else if (pages[pages.length - 1] !== '...') {
+                          pages.push('...');
+                        }
+                      }
+
+                      return pages.map((page, idx) =>
+                        page === '...' ? (
+                          <span key={`ellipsis-${idx}`} className="px-2 text-xs text-[#aaaaaa]">…</span>
+                        ) : (
+                          <button
+                            key={page}
+                            onClick={() => setCurrentPage(page)}
+                            className={`w-8 h-8 rounded-lg text-xs font-medium transition-colors ${page === currentPage
+                              ? 'bg-[#0b9e7a] text-white'
+                              : 'border border-[#e0e0e0] text-[#555] hover:bg-white'
+                              }`}
+                          >
+                            {page}
+                          </button>
+                        )
+                      );
+                    })()}
+
+                    <button
+                      onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                      disabled={currentPage === totalPages}
+                      className="px-3 py-1.5 rounded-lg border border-[#e0e0e0] text-xs font-medium text-[#555] disabled:opacity-40 disabled:cursor-not-allowed hover:bg-white transition-colors"
+                    >
+                      Next
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
           )}
         </div>
