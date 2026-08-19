@@ -230,6 +230,8 @@ function toForm(p) {
     name:              p.name              ?? '',
     sku:               p.sku               ?? '',
     size:              p.size              ?? '',
+    widthMM:           p.widthMM           ?? '',
+    heightMM:          p.heightMM          ?? '',
     navCategory:       p.navCategory       ?? '',
     accordionCategory: p.accordionCategory ?? '',
     colour:            p.colour            ?? '',
@@ -437,6 +439,16 @@ async function handleSave() {
             <div>
               <Label>Size</Label>
               <input value={form.size} onChange={e => set('size', e.target.value)} placeholder="e.g. 600×600 mm" className={inputCls} />
+            </div>
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <Label>Width (mm)</Label>
+              <input type="number" step="0.01" value={form.widthMM} onChange={e => set('widthMM', e.target.value)} placeholder="e.g. 600" className={inputCls} />
+            </div>
+            <div>
+              <Label>Height (mm)</Label>
+              <input type="number" step="0.01" value={form.heightMM} onChange={e => set('heightMM', e.target.value)} placeholder="e.g. 600" className={inputCls} />
             </div>
           </div>
 
