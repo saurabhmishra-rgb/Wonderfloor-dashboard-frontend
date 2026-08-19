@@ -8,7 +8,7 @@ const INITIAL_COLLECTIONS = [
    'Braavo', 'Krayons', 'Durofloor', 'Siggma', 'Orbit', 'Stoneland Monza', 
   'Antique', 'Adventus', 'Duratek', 'Galaxxy', 'GDP', 'Hi-Tech', 'Luxuria', 
   'Matrixx', 'Meteor', 'Ornate', 'Oriion', 'Rangolie', 'Rhythm', 'Robust', 
-  'Traction / Safety', 'Trendo Wood', 'Trendo Chips', 'Uttsav',  
+  'Traction / Safety', 'Trendo Wood', 'Trendo Chips', 'Uttsav',
   'Aventus', 'Timberworld 1.5mm', 'Timberland Exotica 2mm', 
   'Timberland Maestro 3mm', 'Timberland Herringbone', 'Timberland Widex', 
   'Grandeure Supreme'
@@ -19,12 +19,8 @@ const INITIAL_COLOR_FAMILIES = [
   'Blue', 'Green', 'Red', 'Orange', 'Yellow', 'Purple', 'Pink',
 ];
 const INITIAL_USER_INDUSTRIES = [
-  
-  'Industrial Flooring', 'Office Flooring', 'Residential Flooring', 
-  'School Flooring', 'Sports Flooring', 'Supermarket Flooring', 
-  'Transport Flooring', 'Hospital Flooring', 'Auditorium Flooring', 
-  'Hotel/ Hospitality Flooring',
-
+  'Industrial Flooring', 'Office Flooring', 'Residential Flooring',
+  'School Flooring', 'Sports Flooring', 'Hotel/ Hospitality Flooring',
 ];
 const INITIAL_THICKNESS_OPTIONS = [
   '1.0mm', '1.5mm', '2.0mm', '2.5mm', '3.0mm', '3.5mm', '4.0mm', '5.0mm',
@@ -505,9 +501,11 @@ export default function UploadTileModal({ onClose, onSuccess }) {
   // ─────────────────────────────────────────────────────────────────────────────
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-sm p-4 animate-fade-in"
-       onClick={onClose}>
+      onClick={onClose}
+      >
       <div className="bg-white border border-slate-200 rounded-xl w-full max-w-3xl shadow-2xl flex flex-col max-h-[90vh]"
-          onClick={e => e.stopPropagation()}>
+       onClick={e => e.stopPropagation()}
+       >
 
         {/* Header */}
         <div className="flex justify-between items-center px-6 py-4 border-b border-slate-100 shrink-0">
@@ -545,6 +543,17 @@ export default function UploadTileModal({ onClose, onSuccess }) {
               <div>
                 <label className="block text-[13px] font-semibold text-slate-600 mb-1.5">Physical Size</label>
                 <input type="text" name="size" required placeholder="e.g., 2mtr x 15mtr (Roll)"
+                  className="w-full bg-white border border-slate-200 rounded-lg px-4 py-2.5 text-slate-800 text-sm focus:border-[#0b9e7a] focus:ring-1 focus:ring-[#0b9e7a] focus:outline-none transition-all placeholder:text-slate-400" />
+              </div>
+                            <div>
+                <label className="block text-[13px] font-semibold text-slate-600 mb-1.5">Width (mm)</label>
+                <input type="number" step="0.01" name="widthMM" placeholder="e.g., 600"
+                  className="w-full bg-white border border-slate-200 rounded-lg px-4 py-2.5 text-slate-800 text-sm focus:border-[#0b9e7a] focus:ring-1 focus:ring-[#0b9e7a] focus:outline-none transition-all placeholder:text-slate-400" />
+              </div>
+
+              <div>
+                <label className="block text-[13px] font-semibold text-slate-600 mb-1.5">Height (mm)</label>
+                <input type="number" step="0.01" name="heightMM" placeholder="e.g., 600"
                   className="w-full bg-white border border-slate-200 rounded-lg px-4 py-2.5 text-slate-800 text-sm focus:border-[#0b9e7a] focus:ring-1 focus:ring-[#0b9e7a] focus:outline-none transition-all placeholder:text-slate-400" />
               </div>
 
