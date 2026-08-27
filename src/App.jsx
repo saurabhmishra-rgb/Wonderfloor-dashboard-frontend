@@ -7,6 +7,7 @@ import ProductManager from './admin/pages/ProductManager';
 import AdminSidebar from './admin/components/AdminSidebar';
 import RoomDetail from './admin/pages/RoomDetail'; 
 import Settings from './admin/pages/Settings';
+import Analytics from './admin/pages/Analytics';
 // import SignupPage from './admin/pages/SignupPage';
 import ForgotPasswordPage from './admin/pages/ForgotPasswordPage';
 import LogoutPage from './admin/pages/LogoutPage';
@@ -95,6 +96,7 @@ export default function App() {
         
         <Route path="/admin/sidebar" element={<AdminSidebar />} />
         <Route path="/admin/settings" element={<Settings />} /> 
+        <Route path="/admin/analytics" element={<Analytics />} />
       </Route>
     </Routes>
   );
