@@ -8,7 +8,7 @@ import {
 } from 'recharts';
 import Sidebar from '../components/Sidebar';
 
-const NODE_BACKEND_URL = 'http://localhost:8000';
+const NODE_BACKEND_URL = 'https://wonderfloor-dashboard.vercel.app';
 const LEADS_COLOR = '#0b9e7a';
 const VISITORS_COLOR = '#3b82f6';
 
