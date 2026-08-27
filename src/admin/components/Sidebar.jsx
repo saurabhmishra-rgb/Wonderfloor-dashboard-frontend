@@ -16,14 +16,19 @@ const Icon = {
     <circle cx="9" cy="10" r="2" />
     <path d="M15 9h3M15 13h3M6.5 16c.5-1.5 1.7-2.3 2.5-2.3s2 .8 2.5 2.3" />
   </svg>,
+    analytics: (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"> <line x1="18" y1="20" x2="18" y2="10" /><line x1="12" y1="20" x2="12" y2="4" /> <line x1="6" y1="20" x2="6" y2="14" />
+    </svg>
+  ),
 };
 
-// 🔑 Nav items ab SIRF yahan define hote hain — har page mein nahi
+//  Nav items ab SIRF yahan define hote hain — har page mein nahi
 export const navItems = [
   { label: 'Dashboard Overview', icon: 'grid', key: 'overview', path: '/admin', group: null },
   { label: 'Demo Rooms', icon: 'photo', key: 'rooms', path: '/admin/rooms', group: 'MANAGE' },
   { label: 'Flooring Products', icon: 'stack', key: 'products', path: '/admin/products', group: null },
   { label: 'Leads', icon: 'leads', key: 'settings', path: '/admin/settings', group: null },
+   { label: 'Analitics Dashboard', icon: 'analytics', key: 'analytics', path: '/admin/analytics', group: null },
 ];
 
 /**
