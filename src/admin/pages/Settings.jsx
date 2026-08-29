@@ -1,6 +1,7 @@
 // Settings.jsx
 import { useState, useEffect } from 'react';
 import Sidebar from '../components/Sidebar';
+import LeadDownloadsModal from '../components/LeadDownloadsModal';
 
 // Sirf wahi icons jo IS file mein use ho rahe hain
 // (sidebar ke apne icons ab Sidebar.jsx ke andar hain)
@@ -24,7 +25,7 @@ export default function Settings() {
   const [leads, setLeads] = useState([]);
   const [isLoadingLeads, setIsLoadingLeads] = useState(true);
   const [leadsError, setLeadsError] = useState(null);
-
+  const [selectedLead, setSelectedLead] = useState(null); // { phone, name }
   // Search state
   const [searchTerm, setSearchTerm] = useState('');
   // Date filter
@@ -297,7 +298,12 @@ export default function Settings() {
                 <tbody>
                   {paginatedLeads.map(lead => (
                     <tr key={lead._id} className="border-t border-[#f0f0f0] hover:bg-[#fafafa]">
-                      <td className="px-4 py-3 font-medium text-[#111111]">{lead.name}</td>
+                      <td
+                        className="px-4 py-3 font-medium text-[#111111] cursor-pointer hover:text-[#0b9e7a] hover:underline"
+                        onClick={() => setSelectedLead({ phone: lead.phone, name: lead.name })}
+                      >
+                        {lead.name}
+                      </td>
                       <td className="px-4 py-3">{lead.phone}</td>
                       <td className="px-4 py-3 text-[#0b9e7a]">{lead.email || '—'}</td>
                       <td
@@ -401,6 +407,14 @@ export default function Settings() {
           )}
         </div>
       </main>
+
+      {selectedLead && (
+        <LeadDownloadsModal
+          phone={selectedLead.phone}
+          name={selectedLead.name}
+          onClose={() => setSelectedLead(null)}
+        />
+      )}
     </div>
   );
 }
