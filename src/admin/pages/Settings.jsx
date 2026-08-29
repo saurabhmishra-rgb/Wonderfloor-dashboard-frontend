@@ -304,7 +304,11 @@ export default function Settings() {
                       >
                         {lead.name}
                       </td>
-                      <td className="px-4 py-3">{lead.phone}</td>
+                    <td
+                        href={`tel:${lead.phone}`}
+                        onClick={(e) => e.stopPropagation()}
+                        className="text-[#111111] hover:text-[#0b9e7a] hover:underline">
+                        {lead.phone}</td>
                       <td className="px-4 py-3 text-[#0b9e7a]">{lead.email || '—'}</td>
                       <td
                         className="px-4 py-3 text-[#666666] max-w-[220px] truncate"
