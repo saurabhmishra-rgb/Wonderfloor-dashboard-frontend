@@ -47,6 +47,43 @@ export default function LeadDownloadsModal({ phone, name, onClose }) {
     };
   }, [phone]);
 
+ const handleDeleteDownload = async (downloadId) => {
+    if (!window.confirm('Delete this download record?')) return;
+    try {
+      const res = await fetch(`${NODE_BACKEND_URL}/leads/downloads/entry/${downloadId}`, {
+        method: 'DELETE',
+      });
+      const data = await res.json();
+      if (data.success) {
+        setDownloads((prev) => prev.filter((d) => d._id !== downloadId));
+      } else {
+        alert('Delete failed.');
+      }
+    } catch (err) {
+      console.error('Download delete failed:', err);
+      alert('Could not connect to server.');
+    }
+  };
+
+  const handleDeleteAllDownloads = async () => {
+    if (downloads.length === 0) return;
+    if (!window.confirm(`Delete ALL ${downloads.length} download records for this lead? This cannot be undone.`)) return;
+    try {
+      const res = await fetch(`${NODE_BACKEND_URL}/leads/downloads/${phone}/all`, {
+        method: 'DELETE',
+      });
+      const data = await res.json();
+      if (data.success) {
+        setDownloads([]);
+      } else {
+        alert('Delete all failed.');
+      }
+    } catch (err) {
+      console.error('Delete all downloads failed:', err);
+      alert('Could not connect to server.');
+    }
+  };
+
   return (
     <div
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-[2px] p-4"
@@ -101,9 +138,21 @@ export default function LeadDownloadsModal({ phone, name, onClose }) {
                       <div className="text-[11px] text-[#aaaaaa] truncate">{d.productSku}</div>
                     )}
                   </div>
-                  <span className="text-[11px] text-[#999999] shrink-0 tabular-nums">
-                    {formatDateTime(d.createdAt)}
-                  </span>
+                  <div className="flex items-center gap-2 shrink-0">
+                    <span className="text-[11px] text-[#999999] tabular-nums">
+                      {formatDateTime(d.createdAt)}
+                    </span>
+                    <button
+                      onClick={() => handleDeleteDownload(d._id)}
+                      className="text-red-400 hover:text-red-600 hover:bg-red-50 p-1 rounded-md transition-colors"
+                      title="Delete this record"
+                    >
+                      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <polyline points="3 6 5 6 21 6" />
+                        <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+                      </svg>
+                    </button>
+                  </div>
                 </div>
               ))}
             </div>
@@ -111,16 +160,26 @@ export default function LeadDownloadsModal({ phone, name, onClose }) {
         </div>
 
         {/* Footer */}
-        <div className="px-5 py-3 border-t border-[#f0f0f0] flex justify-between items-center">
+      <div className="px-5 py-3 border-t border-[#f0f0f0] flex justify-between items-center">
           <span className="text-[11px] text-[#999999]">
             {isLoading ? '' : `${downloads.length} download${downloads.length === 1 ? '' : 's'}`}
           </span>
-          <button
-            onClick={onClose}
-            className="text-[12px] font-medium px-4 py-2 rounded-lg bg-[#f5f5f5] text-[#555555] hover:bg-[#eeeeee] transition-colors cursor-pointer"
-          >
-            Close
-          </button>
+          <div className="flex items-center gap-2">
+            {downloads.length > 0 && (
+              <button
+                onClick={handleDeleteAllDownloads}
+                className="text-[12px] font-medium px-4 py-2 rounded-lg bg-red-50 text-red-500 hover:bg-red-100 transition-colors cursor-pointer"
+              >
+                Delete All History
+              </button>
+            )}
+            <button
+              onClick={onClose}
+              className="text-[12px] font-medium px-4 py-2 rounded-lg bg-[#f5f5f5] text-[#555555] hover:bg-[#eeeeee] transition-colors cursor-pointer"
+            >
+              Close
+            </button>
+          </div>
         </div>
       </div>
     </div>
