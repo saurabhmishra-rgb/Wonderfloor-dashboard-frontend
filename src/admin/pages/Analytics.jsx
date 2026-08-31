@@ -8,6 +8,7 @@ import {
 } from 'recharts';
 import Sidebar from '../components/Sidebar';
 
+// const NODE_BACKEND_URL = 'http://localhost:8000';
 const NODE_BACKEND_URL = 'https://wonderfloor-dashboard.vercel.app';
 const LEADS_COLOR = '#0b9e7a';
 const VISITORS_COLOR = '#3b82f6';
@@ -62,7 +63,21 @@ const Icon = {
     </svg>
   ),
 };
+const monthLabel = (d) =>
+  d.toLocaleDateString('en-IN', { month: 'short', year: 'numeric' });
 
+// month ke first/last date "YYYY-MM-DD" format mein — GA4 backend ke liye
+function getMonthRange(monthDate) {
+  const start = new Date(monthDate.getFullYear(), monthDate.getMonth(), 1);
+  const now = new Date();
+  const isCurrentMonth =
+    monthDate.getFullYear() === now.getFullYear() && monthDate.getMonth() === now.getMonth();
+  const end = isCurrentMonth
+    ? now
+    : new Date(monthDate.getFullYear(), monthDate.getMonth() + 1, 0);
+  const fmt = (d) => d.toISOString().slice(0, 10);
+  return { startDate: fmt(start), endDate: fmt(end) };
+}
 // ── Helpers ──
 const startOfDay = (d) => {
   const x = new Date(d);
@@ -105,6 +120,47 @@ function buildGA4Trend(ga4Trend = [], days = 14) {
     const key = `${d.getFullYear()}${String(d.getMonth() + 1).padStart(2, '0')}${String(d.getDate()).padStart(2, '0')}`;
     buckets.set(key, { label: dayLabel(d), visitors: 0 });
   }
+
+  ga4Trend.forEach((row) => {
+    if (buckets.has(row.date)) buckets.get(row.date).visitors = row.activeUsers;
+  });
+
+  return Array.from(buckets.values());
+}
+// Selected month ke saare din (1 se aaj/month-end tak) bucket banata hai
+function daysInRange(monthDate) {
+  const { startDate, endDate } = getMonthRange(monthDate);
+  const start = new Date(startDate);
+  const end = new Date(endDate);
+  const days = [];
+  for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
+    days.push(new Date(d));
+  }
+  return days;
+}
+
+function buildTrendForMonth(leads, monthDate) {
+  const days = daysInRange(monthDate);
+  const buckets = new Map();
+  days.forEach((d) => buckets.set(d.toDateString(), { date: d, label: dayLabel(d), leads: 0 }));
+
+  leads.forEach((lead) => {
+    const raw = lead.createdAt || lead.date || lead.timestamp;
+    if (!raw) return;
+    const key = startOfDay(new Date(raw)).toDateString();
+    if (buckets.has(key)) buckets.get(key).leads += 1;
+  });
+
+  return Array.from(buckets.values());
+}
+
+function buildGA4TrendForMonth(ga4Trend = [], monthDate) {
+  const days = daysInRange(monthDate);
+  const buckets = new Map();
+  days.forEach((d) => {
+    const key = `${d.getFullYear()}${String(d.getMonth() + 1).padStart(2, '0')}${String(d.getDate()).padStart(2, '0')}`;
+    buckets.set(key, { label: dayLabel(d), visitors: 0 });
+  });
 
   ga4Trend.forEach((row) => {
     if (buckets.has(row.date)) buckets.get(row.date).visitors = row.activeUsers;
@@ -162,8 +218,8 @@ const SectionCard = ({ title, right, children, className = '' }) => (
   </div>
 );
 
-const RangeToggle = ({ range, setRange }) => (
-  <div className="flex gap-1 bg-[#f5f5f5] rounded-lg p-1">
+const RangeToggle = ({ range, setRange, disabled }) => (
+  <div className={`flex gap-1 bg-[#f5f5f5] rounded-lg p-1 ${disabled ? 'opacity-40 pointer-events-none' : ''}`}>
     {[7, 14, 30, 60, 90].map((d) => (
       <button
         key={d}
@@ -176,6 +232,75 @@ const RangeToggle = ({ range, setRange }) => (
     ))}
   </div>
 );
+const MONTH_NAMES = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+
+const MonthPicker = ({ selectedMonth, onSelect, onClear, isOpen, setIsOpen }) => {
+  const [viewYear, setViewYear] = useState(
+    (selectedMonth || new Date()).getFullYear()
+  );
+  const today = new Date();
+
+  return (
+    <div className="relative">
+      <button
+        onClick={() => setIsOpen((o) => !o)}
+        className={`flex items-center gap-1.5 text-[12px] font-medium px-3 py-2 rounded-lg border transition-all cursor-pointer ${
+          selectedMonth
+            ? 'bg-[#0b9e7a] text-white border-[#0b9e7a]'
+            : 'bg-white text-[#555555] border-[#e8e8e8] hover:bg-[#f5f5f5]'
+        }`}
+      >
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+          <rect x="3" y="4" width="18" height="18" rx="2" />
+          <line x1="16" y1="2" x2="16" y2="6" />
+          <line x1="8" y1="2" x2="8" y2="6" />
+          <line x1="3" y1="10" x2="21" y2="10" />
+        </svg>
+        {selectedMonth ? monthLabel(selectedMonth) : 'Select Month'}
+      </button>
+
+      {isOpen && (
+        <div className="absolute right-0 mt-2 z-20 bg-white border border-[#e8e8e8] rounded-xl shadow-lg p-3 w-[240px]">
+          <div className="flex items-center justify-between mb-2">
+            <button onClick={() => setViewYear((y) => y - 1)} className="p-1 rounded hover:bg-[#f5f5f5] cursor-pointer">‹</button>
+            <span className="text-[13px] font-semibold text-[#333]">{viewYear}</span>
+            <button onClick={() => setViewYear((y) => y + 1)} className="p-1 rounded hover:bg-[#f5f5f5] cursor-pointer">›</button>
+          </div>
+          <div className="grid grid-cols-3 gap-1.5">
+            {MONTH_NAMES.map((m, i) => {
+              const isFuture = viewYear === today.getFullYear() && i > today.getMonth() || viewYear > today.getFullYear();
+              const isSelected = selectedMonth && selectedMonth.getFullYear() === viewYear && selectedMonth.getMonth() === i;
+              return (
+                <button
+                  key={m}
+                  disabled={isFuture}
+                  onClick={() => { onSelect(new Date(viewYear, i, 1)); setIsOpen(false); }}
+                  className={`text-[12px] py-1.5 rounded-md transition-colors ${
+                    isFuture
+                      ? 'text-[#cccccc] cursor-not-allowed'
+                      : isSelected
+                      ? 'bg-[#0b9e7a] text-white cursor-pointer'
+                      : 'text-[#555555] hover:bg-[#eef7f3] cursor-pointer'
+                  }`}
+                >
+                  {m}
+                </button>
+              );
+            })}
+          </div>
+          {selectedMonth && (
+            <button
+              onClick={() => { onClear(); setIsOpen(false); }}
+              className="mt-2 w-full text-[11px] text-[#999] hover:text-[#0b9e7a] py-1 cursor-pointer"
+            >
+              Clear filter
+            </button>
+          )}
+        </div>
+      )}
+    </div>
+  );
+};
 
 const ChartLegendDot = ({ color, label }) => (
   <span className="flex items-center gap-1.5 text-[12px] text-[#666666]">
@@ -196,7 +321,8 @@ export default function Analytics() {
   const [ga4Loading, setGa4Loading] = useState(true);
   const [topDownloads, setTopDownloads] = useState([]);
   const [downloadsLoading, setDownloadsLoading] = useState(true);
-
+  const [selectedMonth, setSelectedMonth] = useState(null); // null = range-toggle mode
+  const [isMonthPickerOpen, setIsMonthPickerOpen] = useState(false);
   async function loadData() {
     setIsLoading(true);
     setError(null);
@@ -223,11 +349,14 @@ export default function Analytics() {
     loadData();
   }, []);
 
-  // GA4 fetch data
-  async function loadGA4Data(days) {
+  // GA4 fetch data — ya to days count se, ya month (startDate/endDate) se
+  async function loadGA4Data({ days, startDate, endDate } = {}) {
     setGa4Loading(true);
     try {
-      const res = await fetch(`${NODE_BACKEND_URL}/analytics/ga4-summary?days=${days}`);
+      const query = startDate && endDate
+        ? `startDate=${startDate}&endDate=${endDate}`
+        : `days=${days}`;
+      const res = await fetch(`${NODE_BACKEND_URL}/analytics/ga4-summary?${query}`);
       const data = await res.json();
       setGa4Data(data?.success ? data : null);
     } catch (err) {
@@ -239,8 +368,12 @@ export default function Analytics() {
   }
 
   useEffect(() => {
-    loadGA4Data(range);
-  }, [range]);
+    if (selectedMonth) {
+      loadGA4Data(getMonthRange(selectedMonth));
+    } else {
+      loadGA4Data({ days: range });
+    }
+  }, [range, selectedMonth]);
 
   // ✅ NEW: accurate product-wise download counts
   async function loadTopDownloads() {
@@ -260,9 +393,17 @@ export default function Analytics() {
   useEffect(() => {
     loadTopDownloads();
   }, []);
-  const trendData = useMemo(() => buildTrend(leads, range), [leads, range]);
+  const trendData = useMemo(
+    () => (selectedMonth ? buildTrendForMonth(leads, selectedMonth) : buildTrend(leads, range)),
+    [leads, range, selectedMonth]
+  );
   // const productData = useMemo(() => topProducts(leads, 5), [leads]);
-  const ga4TrendData = useMemo(() => buildGA4Trend(ga4Data?.trend, range), [ga4Data, range]);
+  const ga4TrendData = useMemo(
+    () => (selectedMonth
+      ? buildGA4TrendForMonth(ga4Data?.trend, selectedMonth)
+      : buildGA4Trend(ga4Data?.trend, range)),
+    [ga4Data, range, selectedMonth]
+  );
   // sabse jyada aur sabse kam downloaded Product
   // ✅ NEW: sabse zyada aur sabse kam downloaded product nikalo
   const mostLeastDownloads = useMemo(() => {
@@ -296,15 +437,26 @@ export default function Analytics() {
     }).length;
   }, [leads]);
 
+  // selectedMonth active hone par sirf usi month ke leads
+  const monthLeads = useMemo(() => {
+    if (!selectedMonth) return leads;
+    return leads.filter((l) => {
+      const raw = l.createdAt || l.date || l.timestamp;
+      if (!raw) return false;
+      const d = new Date(raw);
+      return d.getFullYear() === selectedMonth.getFullYear() && d.getMonth() === selectedMonth.getMonth();
+    });
+  }, [leads, selectedMonth]);
+
   const recentLeads = useMemo(() => {
-    return [...leads]
+    return [...monthLeads]
       .sort((a, b) => {
         const da = new Date(a.createdAt || a.date || 0);
         const db = new Date(b.createdAt || b.date || 0);
         return db - da;
       })
       .slice(0, 8);
-  }, [leads]);
+  }, [monthLeads]);
 
   const anyLoading = isLoading || ga4Loading;
 
@@ -335,14 +487,23 @@ export default function Analytics() {
             <div className="hidden md:block">
               <h1 className="text-2xl md:text-[28px] font-bold text-[#1a1a1a] tracking-tight">Analytics</h1>
             </div>
-            <button
-              onClick={() => { loadData(); loadGA4Data(range); }}
-              disabled={anyLoading}
-              className="flex items-center gap-1.5 text-[13px] font-medium px-4 py-2.5 rounded-lg border border-[#e8e8e8] bg-white text-[#555555] hover:bg-[#f5f5f5] hover:shadow-sm transition-all disabled:opacity-50 cursor-pointer ml-auto"
-            >
-              <span className={anyLoading ? 'animate-spin' : ''}>{Icon.refresh}</span>
-              Refresh
-            </button>
+            <div className="flex items-center gap-2 ml-auto">
+              <MonthPicker
+                selectedMonth={selectedMonth}
+                onSelect={setSelectedMonth}
+                onClear={() => setSelectedMonth(null)}
+                isOpen={isMonthPickerOpen}
+                setIsOpen={setIsMonthPickerOpen}
+              />
+              <button
+                onClick={() => { loadData(); loadGA4Data(selectedMonth ? getMonthRange(selectedMonth) : { days: range }); }}
+                disabled={anyLoading}
+                className="flex items-center gap-1.5 text-[13px] font-medium px-4 py-2.5 rounded-lg border border-[#e8e8e8] bg-white text-[#555555] hover:bg-[#f5f5f5] hover:shadow-sm transition-all disabled:opacity-50 cursor-pointer"
+              >
+                <span className={anyLoading ? 'animate-spin' : ''}>{Icon.refresh}</span>
+                Refresh
+              </button>
+            </div>
           </div>
 
           {error && (
@@ -355,8 +516,8 @@ export default function Analytics() {
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
             <StatCard
               icon={Icon.leads}
-              label="Total Leads"
-              value={isLoading ? '—' : leads.length}
+              label={selectedMonth ? `Leads (${monthLabel(selectedMonth)})` : 'Total Leads'}
+              value={isLoading ? '—' : (selectedMonth ? monthLeads.length : leads.length)}
               gradient="linear-gradient(135deg, #e5f7f0 0%, #f4fbf8 100%)"
             />
             <StatCard
@@ -414,7 +575,7 @@ export default function Analytics() {
               <div className="flex items-center gap-4">
                 <ChartLegendDot color={LEADS_COLOR} label="Leads" />
                 <ChartLegendDot color={VISITORS_COLOR} label="Visitors" />
-                <RangeToggle range={range} setRange={setRange} />
+                <RangeToggle range={range} setRange={setRange} disabled={!!selectedMonth} />
               </div>
             }
             className="mb-6"
@@ -479,7 +640,7 @@ export default function Analytics() {
               {isLoading ? (
                 <div className="h-[220px] flex items-center justify-center text-[#aaaaaa] text-sm">Loading…</div>
               ) : recentLeads.length === 0 ? (
-                <div className="h-[220px] flex items-center justify-center text-[#aaaaaa] text-sm">Koi lead nahi mila.</div>
+                <div className="h-[220px] flex items-center justify-center text-[#aaaaaa] text-sm">I have not found any lead</div>
               ) : (
                 <div className="flex flex-col divide-y divide-[#f0f0f0] max-h-[260px] overflow-y-auto">
                   {recentLeads.map((lead, i) => (
