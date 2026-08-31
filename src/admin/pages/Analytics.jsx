@@ -1,5 +1,5 @@
 // admin/pages/Analytics.jsx
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import {
   ResponsiveContainer,
   AreaChart, Area,
@@ -239,16 +239,24 @@ const MonthPicker = ({ selectedMonth, onSelect, onClear, isOpen, setIsOpen }) =>
     (selectedMonth || new Date()).getFullYear()
   );
   const today = new Date();
+  const wrapperRef = useRef(null);
+
+  useEffect(() => {
+    if (!isOpen) return;
+    const handleClickOutside = (e) => {
+      if (wrapperRef.current && !wrapperRef.current.contains(e.target)) {
+        setIsOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [isOpen, setIsOpen]);
 
   return (
-    <div className="relative">
+    <div className="relative" ref={wrapperRef}>
       <button
         onClick={() => setIsOpen((o) => !o)}
-        className={`flex items-center gap-1.5 text-[12px] font-medium px-3 py-2 rounded-lg border transition-all cursor-pointer ${
-          selectedMonth
-            ? 'bg-[#0b9e7a] text-white border-[#0b9e7a]'
-            : 'bg-white text-[#555555] border-[#e8e8e8] hover:bg-[#f5f5f5]'
-        }`}
+        className="flex items-center gap-1.5 text-[12px] font-medium px-3 py-2 rounded-lg border border-[#0b9e7a] bg-[#0b9e7a] text-white hover:bg-[#0a8a6a] transition-all cursor-pointer"
       >
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
           <rect x="3" y="4" width="18" height="18" rx="2" />
@@ -256,7 +264,7 @@ const MonthPicker = ({ selectedMonth, onSelect, onClear, isOpen, setIsOpen }) =>
           <line x1="8" y1="2" x2="8" y2="6" />
           <line x1="3" y1="10" x2="21" y2="10" />
         </svg>
-        {selectedMonth ? monthLabel(selectedMonth) : 'Select Month'}
+        {monthLabel(selectedMonth || new Date())}
       </button>
 
       {isOpen && (
