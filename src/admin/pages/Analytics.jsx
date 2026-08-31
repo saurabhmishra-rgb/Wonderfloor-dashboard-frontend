@@ -454,7 +454,7 @@ export default function Analytics() {
               {downloadsLoading ? (
                 <div className="h-[220px] flex items-center justify-center text-[#aaaaaa] text-sm">Loading…</div>
               ) : mostLeastDownloads.length === 0 ? (
-                <div className="h-[220px] flex items-center justify-center text-[#aaaaaa] text-sm">Koi download data nahi mila.</div>
+                <div className="h-[220px] flex items-center justify-center text-[#aaaaaa] text-sm">There is no any download</div>
               ) : (
                 <ResponsiveContainer width="100%" height={220}>
                   <BarChart data={mostLeastDownloads} layout="vertical" margin={{ left: 10, right: 20 }}>
