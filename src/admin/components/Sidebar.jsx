@@ -28,7 +28,7 @@ export const navItems = [
   { label: 'Demo Rooms', icon: 'photo', key: 'rooms', path: '/admin/rooms', group: 'MANAGE' },
   { label: 'Flooring Products', icon: 'stack', key: 'products', path: '/admin/products', group: null },
   { label: 'Leads', icon: 'leads', key: 'settings', path: '/admin/settings', group: null },
-   { label: 'Analitics Dashboard', icon: 'analytics', key: 'analytics', path: '/admin/analytics', group: null },
+   { label: 'Analytics Dashboard', icon: 'analytics', key: 'analytics', path: '/admin/analytics', group: null },
 ];
 
 /**
