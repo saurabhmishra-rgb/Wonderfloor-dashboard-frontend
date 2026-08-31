@@ -124,7 +124,7 @@ export default function LeadDownloadsModal({ phone, name, onClose }) {
             </div>
           ) : downloads.length === 0 ? (
             <div className="h-[160px] flex items-center justify-center text-[#aaaaaa] text-sm">
-              Koi download nahi mila.
+            There is no any download here
             </div>
           ) : (
             <div className="flex flex-col divide-y divide-[#f0f0f0]">
