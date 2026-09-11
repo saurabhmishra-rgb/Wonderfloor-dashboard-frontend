@@ -155,6 +155,32 @@ export default function RoomManager() {
     }
   }
 
+  // Delete All 
+
+  async function handleDeleteCategory(e, categoryName) {
+    e.stopPropagation();
+    const catRooms = rooms.filter(r => r.category === categoryName);
+    const confirmed = window.confirm(
+      `Delete all ${catRooms.length} room(s) in "${categoryName.replace(' Flooring', '')}"? This cannot be undone.`
+    );
+    if (!confirmed) return;
+
+    setTogglingCat(categoryName);
+    try {
+      await Promise.all(
+        catRooms.map(r =>
+          fetch(`https://wonderfloor-dashboard.vercel.app/rooms/${r._id}`, { method: 'DELETE' })
+        )
+      );
+      setRooms(prev => prev.filter(r => r.category !== categoryName));
+      if (activeTab === categoryName) setActiveTab('All');
+    } catch {
+      alert('Could not delete category rooms');
+    } finally {
+      setTogglingCat(null);
+    }
+  }
+
   // ✅ Corrected: Array ka natural order maintain rehne dein jo sorted rooms se aa raha hai
   const dynamicCategories = ['All', ...Array.from(
     new Set(
@@ -378,6 +404,17 @@ export default function RoomManager() {
                         <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
                         <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
                       </svg>
+                    </button>
+                  )}
+                   // Delete All Collection
+                  {!isAll && !isEditing && (
+                    <button
+                      onClick={e => handleDeleteCategory(e, fullCat)}
+                      disabled={togglingCat === fullCat}
+                      className="ml-1 p-1 rounded-md text-[#cccccc] hover:text-red-500 hover:bg-white transition-colors disabled:opacity-50"
+                      title="Delete entire collection"
+                    >
+                      {Icon.trash}
                     </button>
                   )}
                 </div>
