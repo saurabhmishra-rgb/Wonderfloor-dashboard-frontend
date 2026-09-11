@@ -406,7 +406,7 @@ export default function RoomManager() {
                       </svg>
                     </button>
                   )}
-                   // Delete All Collection
+                  
                   {!isAll && !isEditing && (
                     <button
                       onClick={e => handleDeleteCategory(e, fullCat)}
