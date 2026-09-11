@@ -149,6 +149,33 @@ async function handleSaveProductOrder() {
     );
   }
 
+    // Delete All
+  async function  handleDeleteCollection(colName, e){
+    e.stopPropagation();
+    const colProducts = products.filter(p =>p.accordionCategory === colName);
+         const confirmed = window.confirm(
+      `Delete all ${colProducts.length} product(s) in "${colName}"? This cannot be undone.`
+    );
+     if (!confirmed) return;
+      setLoading(true);
+      try {
+         await Promise.all(
+         colProducts.map(p => fetch(`${BASE_URL}/products/${p._id}`, { method: 'DELETE' }))
+        );
+       
+           
+            setProducts(prev => prev.filter(p => p.accordionCategory !== colName));
+            if (selectedCollection === colName) setSelectedCollection(null);
+      }
+      catch(err){
+          console.error('Failed to delete collection:', err);
+      alert('Could not delete collection');
+      }
+      finally {
+      setLoading(false);
+    }
+  }
+
   /* ── data fetching ── */
   async function fetchProductsData() {
     setLoading(true);
@@ -473,6 +500,13 @@ const handleVisibilityChange = (id, newVisible) =>
                           title="Rename collection"
                         >
                           {Icon.edit}
+                        </button>
+                         <button
+                          onClick={e => handleDeleteCollection(col, e)}
+                          className="text-[#cccccc] hover:text-red-500 p-1 rounded transition-colors"
+                          title="Delete entire collection"
+                        >
+                          {Icon.trash}
                         </button>
                         <span className="text-[11px] font-semibold px-2.5 py-0.5 bg-gray-100 text-gray-500 rounded-full group-hover:bg-[#edf9f5] group-hover:text-[#0b9e7a] transition-colors">
                           {getCollectionItemCount(col)}
